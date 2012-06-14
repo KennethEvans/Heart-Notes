@@ -3,7 +3,8 @@
     <string name="app_name">Heart Monitor</string>
 	<string name="new_item">New</string>
 	<string name="refresh_item">Refresh</string>
-    <string name="save">Save</string>
+	<string name="save_item">Save as Text</string>
+	<string name="save">Save</string>
     <string name="delete">Delete</string>
     <string name="cancel">Cancel</string>
     <string name="edit_data">Edit Data</string>

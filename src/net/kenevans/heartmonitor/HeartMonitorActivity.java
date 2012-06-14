@@ -1,8 +1,10 @@
 package net.kenevans.heartmonitor;
 
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
+import java.util.Date;
 
 import android.app.ListActivity;
 import android.content.Context;
@@ -27,6 +29,9 @@ import android.widget.TextView;
  * to the Notes example, but the database is on the SD card.
  */
 public class HeartMonitorActivity extends ListActivity implements IConstants {
+	/** Template for the name of the file written to the SD card */
+	private static final String sdCardFileNameTemplate = "HeartMonitor.%s.txt";
+
 	private HeartMonitorDbAdapter mDbHelper;
 	private CustomCursorAdapter adapter;
 
@@ -70,6 +75,9 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 			return true;
 		case R.id.newdata:
 			createData();
+			return true;
+		case R.id.savetext:
+			save();
 			return true;
 		}
 		return false;
@@ -162,33 +170,85 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 	}
 
 	/**
+	 * Saves the info to the SD card
+	 */
+	private void save() {
+		BufferedWriter out = null;
+		Cursor cursor = null;
+		try {
+			File dir = getDatabaseDirectory();
+			if (dir == null) {
+				Utils.errMsg(this, "Error saving to SD card");
+				return;
+			}
+			String format = "yyyy-MM-dd-HHmmss";
+			SimpleDateFormat formatter = new SimpleDateFormat(format);
+			Date now = new Date();
+			String fileName = String.format(sdCardFileNameTemplate,
+					formatter.format(now), now.getTime());
+			File file = new File(dir, fileName);
+			FileWriter writer = new FileWriter(file);
+			out = new BufferedWriter(writer);
+			cursor = mDbHelper.fetchAllData();
+			int indexId = cursor.getColumnIndex(COL_ID);
+			int indexDate = cursor.getColumnIndex(COL_DATE);
+			// int indexDateMod = cursor.getColumnIndex(COL_DATEMOD);
+			int indexCount = cursor.getColumnIndex(COL_COUNT);
+			int indexTotal = cursor.getColumnIndex(COL_TOTAL);
+			// indexEdited = cursor.getColumnIndex(COL_EDITED);
+			int indexComment = cursor.getColumnIndex(COL_COMMENT);
+			// Loop over items
+			cursor.moveToFirst();
+			String comment, info, date;
+			long count, total, dateNum;
+			while (cursor.isAfterLast() == false) {
+				comment = "<None>";
+				if (indexComment > -1) {
+					comment = cursor.getString(indexComment);
+				}
+				date = "<Unknown>";
+				if (indexDate > -1) {
+					dateNum = cursor.getLong(indexDate);
+					date = formatDate(dateNum);
+				}
+				count = -1;
+				if (indexCount > -1) {
+					count = cursor.getInt(indexCount);
+				}
+				total = -1;
+				if (indexTotal > -1) {
+					total = cursor.getInt(indexTotal);
+				}
+				info = String.format("%2d/%d \t%s \t%s\n", count, total, date,
+						comment);
+				out.write(info);
+				cursor.moveToNext();
+			}
+			Utils.infoMsg(this, "Wrote " + file.getPath());
+		} catch (Exception ex) {
+			Utils.excMsg(this, "Error saving to SD card", ex);
+		} finally {
+			try {
+				cursor.close();
+			} catch (Exception ex) {
+				// Do nothing
+			}
+			try {
+				out.close();
+			} catch (Exception ex) {
+				// Do nothing
+			}
+		}
+	}
+
+	/**
 	 * Gets a new cursor and starts managing it.
 	 */
 	private void refresh() {
 		try {
-			// First get the names of all the columns in the database
-			Cursor cursor = mDbHelper.fetchAllData();
-			String[] avaliableColumns = cursor.getColumnNames();
-			cursor.close();
-
-			// Make an array of the desired ones that are available
-			String[] desiredColumns = { COL_ID, COL_DATE, COL_DATEMOD,
-					COL_EDITED, COL_COMMENT };
-			ArrayList<String> list = new ArrayList<String>();
-			for (String col : desiredColumns) {
-				for (String col1 : avaliableColumns) {
-					if (col.equals(col1)) {
-						list.add(col);
-						break;
-					}
-				}
-			}
-			String[] columns = new String[list.size()];
-			list.toArray(columns);
-
 			// Get the available columns from all rows
 			// String selection = COL_ID + "<=76" + " OR " + COL_ID + "=13";
-			cursor = mDbHelper.fetchAllData();
+			Cursor cursor = mDbHelper.fetchAllData();
 			// editingCursor = getContentResolver().query(editingURI, columns,
 			// "type=?", new String[] { "1" }, "_id DESC");
 			startManagingCursor(cursor);

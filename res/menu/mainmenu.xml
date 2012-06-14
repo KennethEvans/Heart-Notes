@@ -1,4 +1,5 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:id="@+id/newdata" android:title="@string/new_item" />
     <item android:id="@+id/refresh" android:title="@string/refresh_item" />
+    <item android:id="@+id/savetext" android:title="@string/save_item" />
 </menu>
