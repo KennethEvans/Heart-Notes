@@ -79,6 +79,12 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 		case R.id.savetext:
 			save();
 			return true;
+		case R.id.toend:
+			positionListView(true);
+			return true;
+		case R.id.tostart:
+			positionListView(false);
+			return true;
 		}
 		return false;
 	}
@@ -167,6 +173,26 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 		// return dateNum + " " + formatter.format(dateNum);
 
 		return formatter.format(dateNum);
+	}
+
+	/**
+	 * Positions the list view.
+	 * 
+	 * @param toEnd
+	 *            True to go to the end, false to go to the beginning.
+	 */
+	private void positionListView(final boolean toEnd) {
+		final ListView lv = this.getListView();
+		if (lv == null) {
+			Utils.errMsg(this, "Error positioning ListView");
+			return;
+		}
+		lv.post(new Runnable() {
+			public void run() {
+				int pos=toEnd?lv.getCount() - 1:0;
+				lv.setSelection(pos);
+			}
+		});
 	}
 
 	/**

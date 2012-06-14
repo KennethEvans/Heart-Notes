@@ -5,7 +5,9 @@
 	<string name="refresh_item">Refresh</string>
 	<string name="save_item">Save as Text</string>
 	<string name="save">Save</string>
-    <string name="delete">Delete</string>
+	<string name="tostart_item">Beginning</string>
+	<string name="toend_item">End</string>
+	<string name="delete">Delete</string>
     <string name="cancel">Cancel</string>
     <string name="edit_data">Edit Data</string>
     <string name="count_label">Count</string>
