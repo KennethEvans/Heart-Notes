@@ -82,7 +82,7 @@ public interface IConstants {
 
 	/** The static format string to use for formatting dates. */
 	// public static final String longFormat = "MMM dd, yyyy HH:mm:ss Z";
-	public static final String longFormat = "KK:mm a MMM dd, yyyy";
+	public static final String longFormat = "hh:mm a MMM dd, yyyy";
 	public static final SimpleDateFormat longFormatter = new SimpleDateFormat(
 			longFormat);
 
