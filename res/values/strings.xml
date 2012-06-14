@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Heart Monitor</string>
+	<string name="new_item">New</string>
+	<string name="refresh_item">Refresh</string>
+    <string name="save">Save</string>
+    <string name="delete">Delete</string>
+    <string name="cancel">Cancel</string>
+    <string name="edit_data">Edit Data</string>
+    <string name="count_label">Count</string>
+    <string name="total_label">Total</string>
+    <string name="date_label">Time</string>
+    <string name="datemod_label">Modified Time</string>
+    <string name="edited_label">Edited</string>
+    <string name="comment_label">Comment</string>
+    		
+	<!-- Utils -->
+	<string name="error">Error</string>
+	<string name="exception">Exception</string>
+	<string name="info">Info</string>
+	<string name="ok">OK</string>
+	<string name="warning">Warning</string>
+</resources>
