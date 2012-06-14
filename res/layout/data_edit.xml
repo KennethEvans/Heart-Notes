@@ -15,7 +15,8 @@
 			    android:layout_marginRight="10dip"
 				android:layout_height="wrap_content" 
 				android:text="@string/count_label" />
-			<EditText android:id="@+id/count" 
+			<EditText android:id="@+id/count"
+			    android:inputType="number"
 		 		android:background="#fff0d424"
 			  	android:layout_width="wrap_content"
 				android:layout_height="wrap_content" 
@@ -27,6 +28,7 @@
 				android:layout_height="wrap_content" 
 				android:text="@string/total_label" />
 			<EditText android:id="@+id/total" 
+			    android:inputType="number"
 		 		android:background="#fff0d424"
 			  	android:layout_width="wrap_content"
 				android:layout_height="wrap_content" 
@@ -38,6 +40,7 @@
 				android:layout_height="wrap_content" 
 				android:text="@string/date_label" />
 			<EditText android:id="@+id/date" 
+			    android:inputType="number"
 		 		android:background="#fff0d424"
 			  	android:layout_width="wrap_content"
 				android:layout_height="wrap_content" 
@@ -49,6 +52,7 @@
 				android:layout_height="wrap_content" 
 				android:text="@string/datemod_label" />
 			<EditText android:id="@+id/datemod" 
+			    android:inputType="number"
 		 		android:background="#fff0d424"
 			  	android:layout_width="wrap_content"
 				android:layout_height="wrap_content" 
@@ -60,6 +64,7 @@
 				android:layout_height="wrap_content" 
 				android:text="@string/edited_label" />
 			<EditText android:id="@+id/edited" 
+			    android:inputType="text"
 		 		android:background="#fff0d424"
 			  	android:layout_width="wrap_content"
 				android:layout_height="wrap_content" 
@@ -71,6 +76,7 @@
 		android:layout_height="wrap_content" 
 		android:text="@string/comment_label" />
 	<EditText android:id="@+id/comment" android:layout_width="fill_parent"
+		android:inputType="text"
 		android:gravity="top"
 		android:background="#fffae663"
 		android:layout_height="0dip"

@@ -69,7 +69,7 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 		}
 		return false;
 	}
-	
+
 	@Override
 	protected void onListItemClick(ListView lv, View view, int position, long id) {
 		super.onListItemClick(lv, view, position, id);
@@ -106,15 +106,15 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 	}
 
 	private void createData() {
-		 Intent i = new Intent(this, DataEditActivity.class);
-		 startActivityForResult(i, ACTIVITY_CREATE);
-//		Date date = new Date();
-//		Date dateMod = date;
-//		int count = (int) Math.round(Math.random() * 60);
-//		int total = 60;
-//		String comment = "This is a test";
-//		mDbHelper.createData(date.getTime(), dateMod.getTime(), count, total,
-//				false, comment);
+		Intent i = new Intent(this, DataEditActivity.class);
+		startActivityForResult(i, ACTIVITY_CREATE);
+		// Date date = new Date();
+		// Date dateMod = date;
+		// int count = (int) Math.round(Math.random() * 60);
+		// int total = 60;
+		// String comment = "This is a test";
+		// mDbHelper.createData(date.getTime(), dateMod.getTime(), count, total,
+		// false, comment);
 	}
 
 	/**
@@ -210,8 +210,8 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 		private int indexDate;
 		private int indexCount;
 		private int indexTotal;
-		private int indexDateMod;
-		private int indexEdited;
+//		private int indexDateMod;
+		//		private int indexEdited;
 		private int indexComment;
 
 		public CustomCursorAdapter(Context context, Cursor cursor) {
@@ -219,10 +219,10 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 			inflater = LayoutInflater.from(context);
 			indexId = cursor.getColumnIndex(COL_ID);
 			indexDate = cursor.getColumnIndex(COL_DATE);
-			indexDateMod = cursor.getColumnIndex(COL_DATEMOD);
+			// indexDateMod = cursor.getColumnIndex(COL_DATEMOD);
 			indexCount = cursor.getColumnIndex(COL_COUNT);
 			indexTotal = cursor.getColumnIndex(COL_TOTAL);
-			indexEdited = cursor.getColumnIndex(COL_EDITED);
+			// indexEdited = cursor.getColumnIndex(COL_EDITED);
 			indexComment = cursor.getColumnIndex(COL_COMMENT);
 		}
 

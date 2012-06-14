@@ -1,9 +1,7 @@
 package net.kenevans.heartmonitor;
 
-import java.text.DateFormat;
 import java.text.ParseException;
 import java.util.Date;
-import java.util.GregorianCalendar;
 
 import android.app.Activity;
 import android.database.Cursor;
