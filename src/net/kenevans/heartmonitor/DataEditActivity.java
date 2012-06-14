@@ -11,6 +11,9 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 
+/**
+ * Manages editing a set of data. Done similarly to the Notes example.
+ */
 public class DataEditActivity extends Activity implements IConstants {
 	private HeartMonitorDbAdapter mDbHelper;
 	private EditText mCountText;
@@ -21,14 +24,15 @@ public class DataEditActivity extends Activity implements IConstants {
 	private EditText mCommentText;
 	private Long mRowId;
 
-	/**
-	 * Whether the edit was cancelled or not. Note that if the system calls
-	 * pause, then it will not be cancelled and the note will be saved.
-	 */
+	/** Possible values for the edit state. */
 	private enum State {
 		SAVED, DELETED, CANCELLED
 	};
 
+	/**
+	 * The edit state. Since the initial state is cancelled, if the system calls
+	 * pause, then it will be cancelled and not saved.
+	 */
 	private State state = State.CANCELLED;
 
 	@Override
@@ -125,6 +129,19 @@ public class DataEditActivity extends Activity implements IConstants {
 	private void saveState() {
 		// DEBUG
 		Log.v(TAG, "saveState called mRowId=" + mRowId + " state=" + state);
+		// Do nothing if cancelled
+		if (state == State.CANCELLED) {
+			return;
+		}
+		// Delete if deleted and there is a row ID
+		if (state == State.DELETED) {
+			if (mRowId != null) {
+				mDbHelper.deleteData(mRowId);
+			}
+			return;
+		}
+		// Remaining state is saved, get the entries
+		// Don't use entries for edited and dateMod, set them
 		String comment;
 		long count = 0, total = 0, date = 0, dateMod = 0;
 		boolean edited = false;
@@ -144,36 +161,25 @@ public class DataEditActivity extends Activity implements IConstants {
 				return;
 			}
 			date = testDate.getTime();
-			// Don't use edited and dateMod
 		} catch (Exception ex) {
 			Utils.excMsg(this, "Failed to parse the entered values", ex);
 			return;
 		}
-
-		if (state == State.CANCELLED) {
-			return;
-		}
+		// Save the values
+		dateMod = new Date().getTime();
 		if (mRowId == null) {
-			if (state == State.SAVED) {
-				// Set new values
-				edited = false;
-				dateMod = new Date().getTime();
-				long id = mDbHelper.createData(date, dateMod, count, total,
-						edited, comment);
-				if (id > 0) {
-					mRowId = id;
-				}
+			// Is new
+			edited = false;
+			long id = mDbHelper.createData(date, dateMod, count, total, edited,
+					comment);
+			if (id > 0) {
+				mRowId = id;
 			}
 		} else {
-			if (state == State.SAVED) {
-				// Set new values
-				edited = true;
-				dateMod = new Date().getTime();
-				mDbHelper.updateData(mRowId, date, dateMod, count, total,
-						edited, comment);
-			} else if (state == State.DELETED) {
-				mDbHelper.deleteData(mRowId);
-			}
+			// Is edited
+			edited = true;
+			mDbHelper.updateData(mRowId, date, dateMod, count, total, edited,
+					comment);
 		}
 	}
 

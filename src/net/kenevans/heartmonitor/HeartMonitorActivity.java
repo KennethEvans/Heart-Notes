@@ -21,6 +21,11 @@ import android.widget.CursorAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
 
+/**
+ * Manages a database with entries for the number of Premature Ventricular
+ * Contractions (PVCs) at a given time. The database implementation is similar
+ * to the Notes example, but the database is on the SD card.
+ */
 public class HeartMonitorActivity extends ListActivity implements IConstants {
 	private HeartMonitorDbAdapter mDbHelper;
 	private CustomCursorAdapter adapter;
