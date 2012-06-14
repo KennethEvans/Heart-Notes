@@ -210,8 +210,8 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 		private int indexDate;
 		private int indexCount;
 		private int indexTotal;
-//		private int indexDateMod;
-		//		private int indexEdited;
+		// private int indexDateMod;
+		// private int indexEdited;
 		private int indexComment;
 
 		public CustomCursorAdapter(Context context, Cursor cursor) {
