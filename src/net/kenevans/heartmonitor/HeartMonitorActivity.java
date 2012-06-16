@@ -6,9 +6,12 @@ import java.io.FileWriter;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
+import android.app.AlertDialog;
 import android.app.ListActivity;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.os.Bundle;
 import android.os.Environment;
@@ -35,11 +38,31 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 	private HeartMonitorDbAdapter mDbHelper;
 	private CustomCursorAdapter adapter;
 
+	/** Array of hard-coded filters */
+	protected Filter[] filters;
+	/** The current filter. */
+	private int filter = 0;
+
 	/** Called when the activity is first created. */
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.main);
+
+		// Create filters here so getText is available
+		filters = new Filter[] {
+				new Filter(getText(R.string.filter_none), null),
+				new Filter(getText(R.string.filter_nonzero), COL_COUNT
+						+ " <> 0"),
+				new Filter(getText(R.string.filter_counttotal), COL_COUNT
+						+ " = " + COL_TOTAL), };
+
+		// Get the preferences here before refresh()
+		SharedPreferences prefs = getPreferences(MODE_PRIVATE);
+		filter = prefs.getInt("filter", 0);
+		if (filter < 0 || filter >= filters.length) {
+			filter = 0;
+		}
 
 		File dbFile = getDatabasePath("dummy");
 		Log.d(TAG, this.getClass().getSimpleName() + ".onCreate: "
@@ -84,6 +107,9 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 			return true;
 		case R.id.tostart:
 			positionListView(false);
+			return true;
+		case R.id.filter:
+			setFilter();
 			return true;
 		}
 		return false;
@@ -189,7 +215,7 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 		}
 		lv.post(new Runnable() {
 			public void run() {
-				int pos=toEnd?lv.getCount() - 1:0;
+				int pos = toEnd ? lv.getCount() - 1 : 0;
 				lv.setSelection(pos);
 			}
 		});
@@ -215,7 +241,7 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 			File file = new File(dir, fileName);
 			FileWriter writer = new FileWriter(file);
 			out = new BufferedWriter(writer);
-			cursor = mDbHelper.fetchAllData();
+			cursor = mDbHelper.fetchAllData(filters[filter].selection);
 			int indexId = cursor.getColumnIndex(COL_ID);
 			int indexDate = cursor.getColumnIndex(COL_DATE);
 			// int indexDateMod = cursor.getColumnIndex(COL_DATEMOD);
@@ -268,13 +294,41 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 	}
 
 	/**
+	 * Bring up a dialog to change the filter order.
+	 */
+	private void setFilter() {
+		final CharSequence[] items = new CharSequence[filters.length];
+		for (int i = 0; i < filters.length; i++) {
+			items[i] = filters[i].name;
+		}
+		AlertDialog.Builder builder = new AlertDialog.Builder(this);
+		builder.setTitle(getText(R.string.filter_title));
+		builder.setSingleChoiceItems(items, filter,
+				new DialogInterface.OnClickListener() {
+					public void onClick(DialogInterface dialog, int item) {
+						dialog.dismiss();
+						if (item < 0 || item >= filters.length) {
+							Utils.errMsg(HeartMonitorActivity.this,
+									"Invalid filter");
+							filter = 0;
+						} else {
+							filter = item;
+						}
+						refresh();
+					}
+				});
+		AlertDialog alert = builder.create();
+		alert.show();
+	}
+
+	/**
 	 * Gets a new cursor and starts managing it.
 	 */
 	private void refresh() {
 		try {
 			// Get the available columns from all rows
 			// String selection = COL_ID + "<=76" + " OR " + COL_ID + "=13";
-			Cursor cursor = mDbHelper.fetchAllData();
+			Cursor cursor = mDbHelper.fetchAllData(filters[filter].selection);
 			// editingCursor = getContentResolver().query(editingURI, columns,
 			// "type=?", new String[] { "1" }, "_id DESC");
 			startManagingCursor(cursor);
@@ -292,6 +346,24 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 			}
 		} catch (Exception ex) {
 			Utils.excMsg(this, "Error finding messages", ex);
+		}
+
+		// Save the preferences
+		SharedPreferences.Editor editor = getPreferences(MODE_PRIVATE).edit();
+		editor.putInt("filter", filter);
+		editor.commit();
+	}
+
+	/**
+	 * Class to manage a filter.
+	 */
+	private static class Filter {
+		private CharSequence name;
+		private String selection;
+
+		private Filter(CharSequence menuName, String selection) {
+			this.name = menuName;
+			this.selection = selection;
 		}
 	}
 

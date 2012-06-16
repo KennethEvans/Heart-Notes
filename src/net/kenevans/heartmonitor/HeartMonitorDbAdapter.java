@@ -109,10 +109,10 @@ public class HeartMonitorDbAdapter implements IConstants {
 	 * 
 	 * @return Cursor over all notes
 	 */
-	public Cursor fetchAllData() {
+	public Cursor fetchAllData(String filter) {
 		return mDb.query(DB_TABLE, new String[] { COL_ID, COL_DATE,
 				COL_DATEMOD, COL_COUNT, COL_TOTAL, COL_EDITED, COL_COMMENT },
-				null, null, null, null, SORT_ASCENDING);
+				filter, null, null, null, SORT_ASCENDING);
 	}
 
 	/**

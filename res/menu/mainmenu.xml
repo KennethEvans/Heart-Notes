@@ -1,5 +1,6 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:id="@+id/newdata" android:title="@string/new_item" />
+    <item android:id="@+id/filter" android:title="@string/Filter_item" />
     <item android:id="@+id/savetext" android:title="@string/save_item" />
     <item android:id="@+id/tostart" android:title="@string/tostart_item" />
     <item android:id="@+id/toend" android:title="@string/toend_item" />
