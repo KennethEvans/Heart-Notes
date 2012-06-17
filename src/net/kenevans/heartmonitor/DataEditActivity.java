@@ -42,7 +42,8 @@ public class DataEditActivity extends Activity implements IConstants {
 		// Debug
 		Log.v(TAG, "onCreate called");
 
-		// The default state is cancelled
+		// The default state is cancelled and won't be changed until the users
+		// selects one of the buttons
 		state = State.CANCELLED;
 
 		mDbHelper = new HeartMonitorDbAdapter(this);
@@ -103,6 +104,8 @@ public class DataEditActivity extends Activity implements IConstants {
 		populateFields();
 	}
 
+	// This was used in the notes example. It only applies to kill, not
+	// onResume.
 	@Override
 	protected void onSaveInstanceState(Bundle outState) {
 		super.onSaveInstanceState(outState);
@@ -115,6 +118,9 @@ public class DataEditActivity extends Activity implements IConstants {
 		// Debug
 		Log.v(TAG, "onPause called");
 		super.onPause();
+		// This gets called on every pause. Since the state is cancelled until a
+		// button is pushed, it doesn't do anything until a button is is pressed
+		// and calls finish().
 		saveState();
 	}
 
@@ -123,7 +129,9 @@ public class DataEditActivity extends Activity implements IConstants {
 		// DEBUG
 		Log.v(TAG, "onResume called");
 		super.onResume();
-		populateFields();
+		// We don't want to do this here. It causes the EditTexts to revert to
+		// the original values instead of what has been edited so far.
+		// populateFields();
 	}
 
 	private void saveState() {
@@ -183,6 +191,9 @@ public class DataEditActivity extends Activity implements IConstants {
 		}
 	}
 
+	/**
+	 * Initializes the fields.
+	 */
 	private void populateFields() {
 		if (mRowId != null) {
 			Cursor cursor = mDbHelper.fetchData(mRowId);
