@@ -80,6 +80,10 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 		mDbHelper.open();
 
 		refresh();
+		
+		// Position it to the end
+		positionListView(true);
+
 	}
 
 	@Override
@@ -242,7 +246,7 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 			FileWriter writer = new FileWriter(file);
 			out = new BufferedWriter(writer);
 			cursor = mDbHelper.fetchAllData(filters[filter].selection);
-			int indexId = cursor.getColumnIndex(COL_ID);
+			//			int indexId = cursor.getColumnIndex(COL_ID);
 			int indexDate = cursor.getColumnIndex(COL_DATE);
 			// int indexDateMod = cursor.getColumnIndex(COL_DATEMOD);
 			int indexCount = cursor.getColumnIndex(COL_COUNT);
