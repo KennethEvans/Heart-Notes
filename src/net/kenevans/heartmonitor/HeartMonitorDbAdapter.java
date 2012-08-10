@@ -22,7 +22,8 @@ import android.util.Log;
  * recommended).
  */
 public class HeartMonitorDbAdapter implements IConstants {
-	private DatabaseHelper mDbHelper;
+	// BUG
+	// private DatabaseHelper mDbHelper;
 	private SQLiteDatabase mDb;
 
 	/** Database creation SQL statement */
@@ -47,9 +48,9 @@ public class HeartMonitorDbAdapter implements IConstants {
 	}
 
 	/**
-	 * Open the notes database. If it cannot be opened, try to create a new
-	 * instance of the database. If it cannot be created, throw an exception to
-	 * signal the failure
+	 * Open the database. If it cannot be opened, try to create a new instance
+	 * of the database. If it cannot be created, throw an exception to signal
+	 * the failure
 	 * 
 	 * @return this (self reference, allowing this to be chained in an
 	 *         initialization call)
@@ -57,13 +58,35 @@ public class HeartMonitorDbAdapter implements IConstants {
 	 *             if the database could be neither opened or created
 	 */
 	public HeartMonitorDbAdapter open() throws SQLException {
-		mDbHelper = new DatabaseHelper(mCtx);
-		mDb = mDbHelper.getWritableDatabase();
+		// BUG
+		// mDbHelper = new DatabaseHelper(mCtx);
+		// There seems to be a bug using this logic with Android 4.0.3
+		// Do what should work
+		// mDb = mDbHelper.getWritableDatabase();
+		// Then overwrite it by calling SQLiteDatabase.openDatabase directly
+
+		// Allow database directory to be specified
+		File dir = HeartMonitorActivity.getDatabaseDirectory();
+		if (dir == null) {
+			Utils.errMsg(mCtx, "Cannot access database on SD card");
+			return null;
+		}
+		if (!dir.exists()) {
+			dir.mkdirs();
+		}
+		mDb = SQLiteDatabase.openDatabase(dir + "/" + DB_NAME, null,
+				SQLiteDatabase.CREATE_IF_NECESSARY);
+
+		Log.d(TAG, this.getClass().getSimpleName() + ".open: " + mDb.getPath());
 		return this;
 	}
 
 	public void close() {
-		mDbHelper.close();
+		if (mDb != null) {
+			mDb.close();
+		}
+		// BUG
+		// mDbHelper.close();
 	}
 
 	/**
