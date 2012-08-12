@@ -4,17 +4,15 @@ import java.io.File;
 
 import android.content.ContentValues;
 import android.content.Context;
-import android.content.ContextWrapper;
 import android.database.Cursor;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
-import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
 
 /**
- * Simple notes database access helper class. Defines the basic CRUD operations
- * for Notes, and gives the ability to list all notes as well as retrieve or
- * modify a specific note.
+ * Simple database access helper class. Defines the basic CRUD operations for
+ * Notes, and gives the ability to list all notes as well as retrieve or modify
+ * a specific entry.
  * 
  * This has been improved from the first version of this tutorial through the
  * addition of better error handling and also using returning a Cursor instead
@@ -22,8 +20,7 @@ import android.util.Log;
  * recommended).
  */
 public class HeartMonitorDbAdapter implements IConstants {
-	// BUG
-	// private DatabaseHelper mDbHelper;
+	private DatabaseHelper mDbHelper;
 	private SQLiteDatabase mDb;
 
 	/** Database creation SQL statement */
@@ -48,9 +45,9 @@ public class HeartMonitorDbAdapter implements IConstants {
 	}
 
 	/**
-	 * Open the database. If it cannot be opened, try to create a new instance
-	 * of the database. If it cannot be created, throw an exception to signal
-	 * the failure
+	 * Open the notes database. If it cannot be opened, try to create a new
+	 * instance of the database. If it cannot be created, throw an exception to
+	 * signal the failure
 	 * 
 	 * @return this (self reference, allowing this to be chained in an
 	 *         initialization call)
@@ -58,14 +55,7 @@ public class HeartMonitorDbAdapter implements IConstants {
 	 *             if the database could be neither opened or created
 	 */
 	public HeartMonitorDbAdapter open() throws SQLException {
-		// BUG
-		// mDbHelper = new DatabaseHelper(mCtx);
-		// There seems to be a bug using this logic with Android 4.0.3
-		// Do what should work
-		// mDb = mDbHelper.getWritableDatabase();
-		// Then overwrite it by calling SQLiteDatabase.openDatabase directly
-
-		// Allow database directory to be specified
+		// Make sure the directory exists and is available
 		File dir = HeartMonitorActivity.getDatabaseDirectory();
 		if (dir == null) {
 			Utils.errMsg(mCtx, "Cannot access database on SD card");
@@ -73,26 +63,25 @@ public class HeartMonitorDbAdapter implements IConstants {
 		}
 		if (!dir.exists()) {
 			dir.mkdirs();
+			// Try again
+			if (!dir.exists()) {
+				Utils.errMsg(mCtx, "Unable to create directory on SD card");
+				return null;
+			}
 		}
-		mDb = SQLiteDatabase.openDatabase(dir + "/" + DB_NAME, null,
-				SQLiteDatabase.CREATE_IF_NECESSARY);
-
-		Log.d(TAG, this.getClass().getSimpleName() + ".open: " + mDb.getPath());
+		mDbHelper = new DatabaseHelper(dir.getPath());
+		mDb = mDbHelper.getWritableDatabase();
 		return this;
 	}
 
 	public void close() {
-		if (mDb != null) {
-			mDb.close();
-		}
-		// BUG
-		// mDbHelper.close();
+		mDbHelper.close();
 	}
 
 	/**
 	 * Create new data using the parameters provided. If the data is
-	 * successfully created return the new rowId for that note, otherwise return
-	 * a -1 to indicate failure.
+	 * successfully created return the new rowId for that entry, otherwise
+	 * return a -1 to indicate failure.
 	 * 
 	 * @param date
 	 * @param dateMod
@@ -142,10 +131,10 @@ public class HeartMonitorDbAdapter implements IConstants {
 	 * Return a Cursor positioned at the data that matches the given rowId
 	 * 
 	 * @param rowId
-	 *            id of note to retrieve
-	 * @return Cursor positioned to matching note, if found
+	 *            id of entry to retrieve
+	 * @return Cursor positioned to matching entry, if found
 	 * @throws SQLException
-	 *             if note could not be found/retrieved
+	 *             if entry could not be found/retrieved
 	 */
 	public Cursor fetchData(long rowId) throws SQLException {
 		Cursor mCursor = mDb.query(true, DB_TABLE, new String[] { COL_ID,
@@ -167,7 +156,7 @@ public class HeartMonitorDbAdapter implements IConstants {
 	 * @param dateMod
 	 * @param edited
 	 * @param comment
-	 * @return true if the note was successfully updated, false otherwise
+	 * @return true if the entry was successfully updated, false otherwise
 	 */
 	public boolean updateData(long rowId, long date, long dateMod, long count,
 			long total, boolean edited, String comment) {
@@ -184,33 +173,12 @@ public class HeartMonitorDbAdapter implements IConstants {
 
 	/**
 	 * A SQLiteOpenHelper helper to help manage database creation and version
-	 * management.
+	 * management. Extends a custom version that writes to the SD Card instead
+	 * of using the Context.
 	 */
-	private static class DatabaseHelper extends SQLiteOpenHelper {
-		public DatabaseHelper(final Context context) {
-			// The normal implementation would just use context, instead of the
-			// ContextWrapper that overrides openOrCreateDatabase to use the SD
-			// card directory
-			super(new ContextWrapper(context) {
-				@Override
-				public SQLiteDatabase openOrCreateDatabase(String name,
-						int mode, SQLiteDatabase.CursorFactory factory) {
-
-					// Allow database directory to be specified
-					File dir = HeartMonitorActivity.getDatabaseDirectory();
-					if (dir == null) {
-						Utils.errMsg(context,
-								"Cannot access database on SD card");
-						return null;
-					}
-					if (!dir.exists()) {
-						dir.mkdirs();
-					}
-					return SQLiteDatabase.openDatabase(dir + "/" + DB_NAME,
-							null, SQLiteDatabase.CREATE_IF_NECESSARY);
-				}
-			}, DB_NAME, null, DB_VERSION);
-			// this.context = context;
+	private static class DatabaseHelper extends SDCardSQLiteOpenHelper {
+		public DatabaseHelper(String dir) {
+			super(dir, DB_NAME, null, DB_VERSION);
 		}
 
 		@Override
@@ -220,6 +188,8 @@ public class HeartMonitorDbAdapter implements IConstants {
 
 		@Override
 		public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+			// TODO Re-do this so nothing is lost if there is a need to change
+			// the version
 			Log.w(TAG, "Upgrading database from version " + oldVersion + " to "
 					+ newVersion + ", which will destroy all old data");
 			db.execSQL("DROP TABLE IF EXISTS " + DB_TABLE);
