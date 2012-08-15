@@ -15,7 +15,6 @@ import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.os.Bundle;
 import android.os.Environment;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -64,23 +63,11 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 			filter = 0;
 		}
 
-		File dbFile = getDatabasePath("dummy");
-		Log.d(TAG, this.getClass().getSimpleName() + ".onCreate: "
-				+ " getDatabasePath(\"dummy\")=" + dbFile);
-		String[] databases = databaseList();
-		if (databases.length == 0) {
-			Log.d(TAG, "    No databases found");
-		} else {
-			for (String db : databases) {
-				Log.d(TAG, "    " + db);
-			}
-		}
-
 		mDbHelper = new HeartMonitorDbAdapter(this);
 		mDbHelper.open();
 
 		refresh();
-		
+
 		// Position it to the end
 		positionListView(true);
 
@@ -246,7 +233,7 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 			FileWriter writer = new FileWriter(file);
 			out = new BufferedWriter(writer);
 			cursor = mDbHelper.fetchAllData(filters[filter].selection);
-			//			int indexId = cursor.getColumnIndex(COL_ID);
+			// int indexId = cursor.getColumnIndex(COL_ID);
 			int indexDate = cursor.getColumnIndex(COL_DATE);
 			// int indexDateMod = cursor.getColumnIndex(COL_DATEMOD);
 			int indexCount = cursor.getColumnIndex(COL_COUNT);

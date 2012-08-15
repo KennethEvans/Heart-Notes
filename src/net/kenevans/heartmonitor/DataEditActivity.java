@@ -4,9 +4,16 @@ import java.text.ParseException;
 import java.util.Date;
 
 import android.app.Activity;
+import android.app.ProgressDialog;
+import android.content.DialogInterface;
+import android.content.DialogInterface.OnCancelListener;
 import android.database.Cursor;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -34,6 +41,9 @@ public class DataEditActivity extends Activity implements IConstants {
 	 * pause, then it will be cancelled and not saved.
 	 */
 	private State state = State.CANCELLED;
+
+	/** Task for getting the temperature from the web */
+	private GetTempTask updateTask;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -134,6 +144,35 @@ public class DataEditActivity extends Activity implements IConstants {
 		// populateFields();
 	}
 
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+		MenuInflater inflater = getMenuInflater();
+		inflater.inflate(R.menu.editmenu, menu);
+		return true;
+	}
+
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item) {
+		int id = item.getItemId();
+		switch (id) {
+		case R.id.weather:
+			insertWeather();
+			return true;
+		}
+		return false;
+	}
+
+	private void insertWeather() {
+		if (updateTask != null) {
+			// Don't do anything if we are updating
+			Log.d(TAG, this.getClass().getSimpleName()
+					+ ": getStrip: updateTask is not null");
+			return;
+		}
+		updateTask = new GetTempTask();
+		updateTask.execute();
+	}
+
 	private void saveState() {
 		// DEBUG
 		Log.v(TAG, "saveState called mRowId=" + mRowId + " state=" + state);
@@ -219,6 +258,78 @@ public class DataEditActivity extends Activity implements IConstants {
 			mDateText.setText(HeartMonitorActivity.formatDate(now.getTime()));
 			mDateModText
 					.setText(HeartMonitorActivity.formatDate(now.getTime()));
+		}
+	}
+
+	private class GetTempTask extends AsyncTask<Void, Void, Boolean> {
+		private ProgressDialog dialog;
+		private String[] vals;
+
+		public GetTempTask() {
+			super();
+		}
+
+		@Override
+		protected void onPreExecute() {
+			// DEBUG TIME
+			// Log.d(TAG, this.getClass().getSimpleName()
+			// + ": onPreExecute: delta(1)=" + getDeltaTime());
+			dialog = new ProgressDialog(DataEditActivity.this);
+			dialog.setMessage("Getting Weather");
+			dialog.setCancelable(true);
+			dialog.setIndeterminate(true);
+			dialog.setOnCancelListener(new OnCancelListener() {
+				public void onCancel(DialogInterface dialog) {
+					Log.d(TAG, GetTempTask.this.getClass().getSimpleName()
+							+ ": ProgressDialog.onCancel: Cancelled");
+					if (updateTask != null) {
+						updateTask.cancel(true);
+						updateTask = null;
+					}
+				}
+			});
+			dialog.show();
+			// DEBUG TIME
+			// Log.d(TAG, this.getClass().getSimpleName()
+			// + ": onPreExecute: delta(2)=" + getDeltaTime());
+		}
+
+		@Override
+		protected Boolean doInBackground(Void... dummy) {
+			// DEBUG TIME
+			// Log.d(TAG, this.getClass().getSimpleName()
+			// + ": doInBackground: delta=" + getDeltaTime());
+
+			// Up the priority
+			Thread.currentThread().setPriority(Thread.MAX_PRIORITY);
+
+			vals = LocationUtils
+					.getTemperatureHumidityFromLocation(DataEditActivity.this);
+			return true;
+		}
+
+		@Override
+		protected void onPostExecute(Boolean result) {
+			Log.d(TAG, this.getClass().getSimpleName()
+					+ ": onPostExecute: result=" + result);
+			if (dialog != null) {
+				dialog.dismiss();
+			}
+			// // Should not be called if it is cancelled
+			// if (isCancelled()) {
+			// updateTask = null;
+			// Log.d(TAG, this.getClass().getSimpleName()
+			// + ": onPostExecute: isCancelled");
+			// return;
+			// }
+			updateTask = null;
+			if (vals == null) {
+				Utils.errMsg(DataEditActivity.this, "Failed to get weather");
+				mCommentText.append("Weather NA.");
+				return;
+			}
+			mCommentText.append(vals[0] + " " + vals[1] + " " + "(" + vals[2]
+					+ ")");
 		}
 	}
 }
