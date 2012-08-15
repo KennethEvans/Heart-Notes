@@ -232,7 +232,8 @@ public class LocationUtils implements IConstants {
 
 	/**
 	 * Finds the temperature for the given address. Uses
-	 * "https://www.google.com/ig/api?weather=".
+	 * "https://www.google.com/ig/api?weather=". Must not be called from the
+	 * main thread.
 	 * 
 	 * @param address
 	 * @return
@@ -282,7 +283,8 @@ public class LocationUtils implements IConstants {
 
 	/**
 	 * Finds the temperature, humidity, and city for the given address. Uses
-	 * "https://www.google.com/ig/api?weather=".
+	 * "https://www.google.com/ig/api?weather=". Must not be called from the
+	 * main thread.
 	 * 
 	 * @param address
 	 * @return String[3] as {temperature, humidity, city} or null on failure.
@@ -344,7 +346,8 @@ public class LocationUtils implements IConstants {
 							}
 						}
 					}
-					if (tempFound == true && humidityFound == true && cityFound == true) {
+					if (tempFound == true && humidityFound == true
+							&& cityFound == true) {
 						break;
 					}
 				}
