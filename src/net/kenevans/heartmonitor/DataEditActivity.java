@@ -163,14 +163,17 @@ public class DataEditActivity extends Activity implements IConstants {
 	}
 
 	private void insertWeather() {
-		if (updateTask != null) {
-			// Don't do anything if we are updating
-			Log.d(TAG, this.getClass().getSimpleName()
-					+ ": getStrip: updateTask is not null");
-			return;
-		}
-		updateTask = new GetTempTask();
-		updateTask.execute();
+		// FIXME
+		// Workaround until Google Weather API becomes available or a substitute is found
+		mCommentText.append("Temp: Humidity: %");
+		// if (updateTask != null) {
+		// // Don't do anything if we are updating
+		// Log.d(TAG, this.getClass().getSimpleName()
+		// + ": getStrip: updateTask is not null");
+		// return;
+		// }
+		// updateTask = new GetTempTask();
+		// updateTask.execute();
 	}
 
 	private void saveState() {
