@@ -118,7 +118,9 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 	protected void onActivityResult(int requestCode, int resultCode,
 			Intent intent) {
 		super.onActivityResult(requestCode, resultCode, intent);
-		refresh();
+		// refresh should not be necessary. onResume will be called next
+		// and on Resume does not require refresh
+		// refresh();
 	}
 
 	// @Override
