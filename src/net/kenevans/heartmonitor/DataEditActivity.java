@@ -43,7 +43,7 @@ public class DataEditActivity extends Activity implements IConstants {
 	private State state = State.CANCELLED;
 
 	/** Task for getting the temperature from the web */
-	private GetTempTask updateTask;
+	private GetWeatherTask updateTask;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -164,16 +164,18 @@ public class DataEditActivity extends Activity implements IConstants {
 
 	private void insertWeather() {
 		// FIXME
-		// Workaround until Google Weather API becomes available or a substitute is found
-		mCommentText.append("Temp: Humidity: %");
-		// if (updateTask != null) {
-		// // Don't do anything if we are updating
-		// Log.d(TAG, this.getClass().getSimpleName()
-		// + ": getStrip: updateTask is not null");
-		// return;
-		// }
-		// updateTask = new GetTempTask();
-		// updateTask.execute();
+		// Workaround until Google Weather API becomes available or a substitute
+		// is found
+		// mCommentText.append("Temp: Humidity: %");
+
+		if (updateTask != null) {
+			// Don't do anything if we are updating
+			Log.d(TAG, this.getClass().getSimpleName()
+					+ ": getStrip: updateTask is not null");
+			return;
+		}
+		updateTask = new GetWeatherTask();
+		updateTask.execute();
 	}
 
 	private void saveState() {
@@ -264,13 +266,13 @@ public class DataEditActivity extends Activity implements IConstants {
 		}
 	}
 
-	private class GetTempTask extends AsyncTask<Void, Void, Boolean> {
+	private class GetWeatherTask extends AsyncTask<Void, Void, Boolean> {
 		private ProgressDialog dialog;
 		private String[] vals;
 
-		public GetTempTask() {
-			super();
-		}
+		// public GetWeatherTask() {
+		// super();
+		// }
 
 		@Override
 		protected void onPreExecute() {
@@ -283,7 +285,7 @@ public class DataEditActivity extends Activity implements IConstants {
 			dialog.setIndeterminate(true);
 			dialog.setOnCancelListener(new OnCancelListener() {
 				public void onCancel(DialogInterface dialog) {
-					Log.d(TAG, GetTempTask.this.getClass().getSimpleName()
+					Log.d(TAG, GetWeatherTask.this.getClass().getSimpleName()
 							+ ": ProgressDialog.onCancel: Cancelled");
 					if (updateTask != null) {
 						updateTask.cancel(true);
@@ -306,8 +308,9 @@ public class DataEditActivity extends Activity implements IConstants {
 			// Up the priority
 			Thread.currentThread().setPriority(Thread.MAX_PRIORITY);
 
-			vals = LocationUtils
-					.getTemperatureHumidityFromLocation(DataEditActivity.this);
+			// vals = GoogleLocationUtils
+			// .getGoogleWeather(DataEditActivity.this);
+			vals = LocationUtils.getWundWeather(DataEditActivity.this);
 			return true;
 		}
 
@@ -331,8 +334,8 @@ public class DataEditActivity extends Activity implements IConstants {
 				mCommentText.append("Weather NA.");
 				return;
 			}
-			mCommentText.append(vals[0] + " " + vals[1] + " " + "(" + vals[2]
-					+ ")");
+			mCommentText.append("Temp " + vals[0] + " Humidity " + vals[1]
+					+ " " + "(" + vals[2] + ")");
 		}
 	}
 }
