@@ -5,6 +5,7 @@
 	<string name="new_item">New</string>
 	<string name="refresh_item">Refresh</string>
 	<string name="restore_item">Restore</string>
+	<string name="set_data_directory_item">Set Data Directory</string>
 	<string name="save_item">Save as Text</string>
 	<string name="save">Save</string>
 	<string name="tostart_item">Beginning</string>

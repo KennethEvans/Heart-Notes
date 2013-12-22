@@ -22,6 +22,8 @@ import android.util.Log;
 public class HeartMonitorDbAdapter implements IConstants {
 	private DatabaseHelper mDbHelper;
 	private SQLiteDatabase mDb;
+	private final Context mCtx;
+	private File mDataDir;
 
 	/** Database creation SQL statement */
 	private static final String DB_CREATE = "create table " + DB_TABLE
@@ -31,23 +33,24 @@ public class HeartMonitorDbAdapter implements IConstants {
 			+ " integer not null, " + COL_EDITED + " integer not null,"
 			+ COL_COMMENT + " text not null);";
 
-	private final Context mCtx;
-
 	/**
 	 * Constructor - takes the context to allow the database to be
 	 * opened/created
 	 * 
 	 * @param ctx
-	 *            the Context within which to work
+	 *            The context.
+	 * @param dataDir
+	 *            The location of the data.
 	 */
-	public HeartMonitorDbAdapter(Context ctx) {
-		this.mCtx = ctx;
+	public HeartMonitorDbAdapter(Context ctx, File dataDir) {
+		mCtx = ctx;
+		mDataDir = dataDir;
 	}
 
 	/**
-	 * Open the notes database. If it cannot be opened, try to create a new
-	 * instance of the database. If it cannot be created, throw an exception to
-	 * signal the failure
+	 * Open the database. If it cannot be opened, try to create a new instance
+	 * of the database. If it cannot be created, throw an exception to signal
+	 * the failure
 	 * 
 	 * @return this (self reference, allowing this to be chained in an
 	 *         initialization call)
@@ -56,20 +59,19 @@ public class HeartMonitorDbAdapter implements IConstants {
 	 */
 	public HeartMonitorDbAdapter open() throws SQLException {
 		// Make sure the directory exists and is available
-		File dir = HeartMonitorActivity.getDatabaseDirectory();
-		if (dir == null) {
+		if (mDataDir == null) {
 			Utils.errMsg(mCtx, "Cannot access database on SD card");
 			return null;
 		}
-		if (!dir.exists()) {
-			dir.mkdirs();
+		if (!mDataDir.exists()) {
+			mDataDir.mkdirs();
 			// Try again
-			if (!dir.exists()) {
+			if (!mDataDir.exists()) {
 				Utils.errMsg(mCtx, "Unable to create directory on SD card");
 				return null;
 			}
 		}
-		mDbHelper = new DatabaseHelper(dir.getPath());
+		mDbHelper = new DatabaseHelper(mDataDir.getPath());
 		mDb = mDbHelper.getWritableDatabase();
 		return this;
 	}

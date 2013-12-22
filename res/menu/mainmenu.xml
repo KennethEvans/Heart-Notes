@@ -6,4 +6,5 @@
     <item android:id="@+id/toend" android:title="@string/toend_item" />
     <item android:id="@+id/refresh" android:title="@string/refresh_item" />
     <item android:id="@+id/restore" android:title="@string/restore_item" />
+    <item android:id="@+id/setdatadirectory" android:title="@string/set_data_directory_item" />
 </menu>

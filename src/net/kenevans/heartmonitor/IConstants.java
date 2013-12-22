@@ -44,6 +44,9 @@ public interface IConstants {
 	public static final String DB_TABLE = "data";
 	/** The database version */
 	public static final int DB_VERSION = 1;
+	
+	// Preferences
+	public static final String PREF_DATA_DIRECTORY = "dataDirectory";
 
 	// Information
 	/** Key for information URL sent to InfoActivity. */

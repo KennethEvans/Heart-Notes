@@ -25,6 +25,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CursorAdapter;
+import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.TextView;
 
@@ -39,6 +40,7 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 
 	private HeartMonitorDbAdapter mDbHelper;
 	private CustomCursorAdapter adapter;
+	private File mDataDir;
 
 	/** Array of hard-coded filters */
 	protected Filter[] filters;
@@ -66,7 +68,8 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 			filter = 0;
 		}
 
-		mDbHelper = new HeartMonitorDbAdapter(this);
+		mDataDir = getDataDirectory();
+		mDbHelper = new HeartMonitorDbAdapter(this, mDataDir);
 		mDbHelper.open();
 
 		refresh();
@@ -108,6 +111,9 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 		case R.id.restore:
 			checkRestore();
 			return true;
+		case R.id.setdatadirectory:
+			setDataDirectory();
+			return true;
 		}
 		return false;
 	}
@@ -117,6 +123,7 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 		super.onListItemClick(lv, view, position, id);
 		Intent i = new Intent(this, DataEditActivity.class);
 		i.putExtra(COL_ID, id);
+		i.putExtra(PREF_DATA_DIRECTORY, mDataDir);
 		startActivityForResult(i, ACTIVITY_EDIT);
 	}
 
@@ -140,13 +147,99 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 	// return file;
 	// }
 
-	public static File getDatabaseDirectory() {
-		File dir = null;
-		File sdCardRoot = Environment.getExternalStorageDirectory();
-		if (sdCardRoot.canWrite()) {
-			dir = new File(sdCardRoot, SD_CARD_DB_DIRECTORY);
+	/**
+	 * Gets the current data directory
+	 * 
+	 * @return
+	 */
+	public File getDataDirectory() {
+		SharedPreferences prefs = getPreferences(MODE_PRIVATE);
+		String dataDirName = prefs.getString(PREF_DATA_DIRECTORY, null);
+		File dataDir = null;
+		if (dataDirName != null) {
+			dataDir = new File(dataDirName);
+		} else {
+			File sdCardRoot = Environment.getExternalStorageDirectory();
+			if (sdCardRoot != null) {
+				dataDir = new File(sdCardRoot, SD_CARD_DB_DIRECTORY);
+				// Change the stored value (even if it is null)
+				SharedPreferences.Editor editor = getPreferences(MODE_PRIVATE)
+						.edit();
+				editor.putString(PREF_DATA_DIRECTORY, dataDir.getPath());
+				editor.commit();
+			}
 		}
-		return dir;
+		if (dataDir == null) {
+			Utils.errMsg(this, "Data directory is null");
+			return null;
+		}
+		if (!dataDir.exists()) {
+			Utils.errMsg(this, "Cannot find directory: " + dataDir);
+			return null;
+		}
+		return dataDir;
+	}
+
+	/**
+	 * Sets the current image directory
+	 * 
+	 * @return
+	 */
+	private void setDataDirectory() {
+		AlertDialog.Builder alert = new AlertDialog.Builder(this);
+		alert.setTitle("Set Data Directory");
+		alert.setMessage("Data Directory (Leave blank for default):");
+
+		// Set an EditText view to get user input
+		final EditText input = new EditText(this);
+		// Set it with the current value
+		SharedPreferences prefs = getPreferences(MODE_PRIVATE);
+		String imageDirName = prefs.getString(PREF_DATA_DIRECTORY, null);
+		if (imageDirName != null) {
+			input.setText(imageDirName);
+		}
+		alert.setView(input);
+
+		alert.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+			public void onClick(DialogInterface dialog, int whichButton) {
+				String value = input.getText().toString();
+				File dataDir = null;
+				if (value.length() == 0) {
+					File sdCardRoot = Environment.getExternalStorageDirectory();
+					if (sdCardRoot != null) {
+						dataDir = new File(sdCardRoot, SD_CARD_DB_DIRECTORY);
+					}
+				} else {
+					dataDir = new File(value);
+				}
+				if (!dataDir.exists()) {
+					Utils.errMsg(HeartMonitorActivity.this,
+							"Directory does not exist:\n" + dataDir.getPath());
+					return;
+				}
+				mDataDir = dataDir;
+				SharedPreferences.Editor editor = getPreferences(MODE_PRIVATE)
+						.edit();
+				editor.putString(PREF_DATA_DIRECTORY, mDataDir.getPath());
+				editor.commit();
+				if (mDbHelper != null) {
+					mDbHelper.close();
+				}
+				mDbHelper = new HeartMonitorDbAdapter(
+						HeartMonitorActivity.this, mDataDir);
+				mDbHelper.open();
+				refresh();
+			}
+		});
+
+		alert.setNegativeButton("Cancel",
+				new DialogInterface.OnClickListener() {
+					public void onClick(DialogInterface dialog, int whichButton) {
+						// Do nothing
+					}
+				});
+
+		alert.show();
 	}
 
 	private void createData() {
@@ -227,8 +320,7 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 		BufferedWriter out = null;
 		Cursor cursor = null;
 		try {
-			File dir = getDatabaseDirectory();
-			if (dir == null) {
+			if (mDataDir == null) {
 				Utils.errMsg(this, "Error saving to SD card");
 				return;
 			}
@@ -237,7 +329,7 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 			Date now = new Date();
 			String fileName = String.format(sdCardFileNameTemplate,
 					df.format(now), now.getTime());
-			File file = new File(dir, fileName);
+			File file = new File(mDataDir, fileName);
 			FileWriter writer = new FileWriter(file);
 			out = new BufferedWriter(writer);
 			cursor = mDbHelper.fetchAllData(filters[filter].selection);
@@ -298,16 +390,15 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 	 * and restore.
 	 */
 	private void checkRestore() {
-		File dir = getDatabaseDirectory();
-		if (dir == null) {
-			Utils.errMsg(this, "Cannot find Heart Monitor Directory");
+		if (mDataDir == null) {
+			Utils.errMsg(this, "Cannot find Heart Monitor Data Directory");
 			return;
 		}
-		File file = new File(dir, RESTORE_FILE_NAME);
+		File file = new File(mDataDir, RESTORE_FILE_NAME);
 		if (!file.exists()) {
 			Utils.errMsg(this,
 					"For restore, first a saved file must be copied to restore.txt.\n"
-							+ "Cannot find restore.txt in " + dir);
+							+ "Cannot find restore.txt in " + mDataDir);
 			return;
 		}
 
@@ -334,16 +425,15 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 		BufferedReader in = null;
 		int lineNum = 0;
 		try {
-			File dir = getDatabaseDirectory();
-			if (dir == null) {
+			if (mDataDir == null) {
 				Utils.errMsg(this, "Cannot find Heart Monitor Directory");
 				return;
 			}
-			File file = new File(dir, RESTORE_FILE_NAME);
+			File file = new File(mDataDir, RESTORE_FILE_NAME);
 			if (!file.exists()) {
 				Utils.errMsg(this,
 						"For restore, first a saved file must be copied to restore.txt.\n"
-								+ "Cannot find restore.txt in " + dir);
+								+ "Cannot find restore.txt in " + mDataDir);
 				return;
 			}
 

@@ -1,5 +1,6 @@
 package net.kenevans.heartmonitor;
 
+import java.io.File;
 import java.text.ParseException;
 import java.util.Date;
 
@@ -30,6 +31,7 @@ public class DataEditActivity extends Activity implements IConstants {
 	private EditText mEditedText;
 	private EditText mCommentText;
 	private Long mRowId;
+	private File mDataDir;
 
 	/** Possible values for the edit state. */
 	private enum State {
@@ -56,9 +58,6 @@ public class DataEditActivity extends Activity implements IConstants {
 		// selects one of the buttons
 		state = State.CANCELLED;
 
-		mDbHelper = new HeartMonitorDbAdapter(this);
-		mDbHelper.open();
-
 		setContentView(R.layout.data_edit);
 
 		mCountText = (EditText) findViewById(R.id.count);
@@ -73,7 +72,15 @@ public class DataEditActivity extends Activity implements IConstants {
 		if (mRowId == null) {
 			Bundle extras = getIntent().getExtras();
 			mRowId = extras != null ? extras.getLong(COL_ID) : null;
+			String dataDirName = extras != null ? extras
+					.getString(PREF_DATA_DIRECTORY) : null;
+			if (dataDirName != null) {
+				mDataDir = new File(dataDirName);
+			}
 		}
+
+		mDbHelper = new HeartMonitorDbAdapter(this, mDataDir);
+		mDbHelper.open();
 
 		// Save
 		Button button = (Button) findViewById(R.id.save);
