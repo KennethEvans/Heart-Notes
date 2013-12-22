@@ -5,4 +5,5 @@
     <item android:id="@+id/tostart" android:title="@string/tostart_item" />
     <item android:id="@+id/toend" android:title="@string/toend_item" />
     <item android:id="@+id/refresh" android:title="@string/refresh_item" />
+    <item android:id="@+id/restore" android:title="@string/restore_item" />
 </menu>

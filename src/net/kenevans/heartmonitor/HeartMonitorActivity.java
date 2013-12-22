@@ -1,10 +1,13 @@
 package net.kenevans.heartmonitor;
 
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Locale;
 
 import android.app.AlertDialog;
 import android.app.ListActivity;
@@ -101,6 +104,9 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 			return true;
 		case R.id.filter:
 			setFilter();
+			return true;
+		case R.id.restore:
+			checkRestore();
 			return true;
 		}
 		return false;
@@ -215,7 +221,7 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 	}
 
 	/**
-	 * Saves the info to the SD card
+	 * Saves the info to the SD card.
 	 */
 	private void save() {
 		BufferedWriter out = null;
@@ -227,10 +233,10 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 				return;
 			}
 			String format = "yyyy-MM-dd-HHmmss";
-			SimpleDateFormat formatter = new SimpleDateFormat(format);
+			SimpleDateFormat df = new SimpleDateFormat(format, Locale.US);
 			Date now = new Date();
 			String fileName = String.format(sdCardFileNameTemplate,
-					formatter.format(now), now.getTime());
+					df.format(now), now.getTime());
 			File file = new File(dir, fileName);
 			FileWriter writer = new FileWriter(file);
 			out = new BufferedWriter(writer);
@@ -264,8 +270,8 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 				if (indexTotal > -1) {
 					total = cursor.getInt(indexTotal);
 				}
-				info = String.format("%2d/%d \t%s \t%s\n", count, total, date,
-						comment);
+				info = String.format(Locale.US, "%2d/%d \t%s \t%s\n", count,
+						total, date, comment);
 				out.write(info);
 				cursor.moveToNext();
 			}
@@ -280,6 +286,125 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 			}
 			try {
 				out.close();
+			} catch (Exception ex) {
+				// Do nothing
+			}
+		}
+	}
+
+	/**
+	 * Does the preliminary checking for restoring data, prompts if it is OK to
+	 * delete the current data, and call restoreData to actually do the delete
+	 * and restore.
+	 */
+	private void checkRestore() {
+		File dir = getDatabaseDirectory();
+		if (dir == null) {
+			Utils.errMsg(this, "Cannot find Heart Monitor Directory");
+			return;
+		}
+		File file = new File(dir, RESTORE_FILE_NAME);
+		if (!file.exists()) {
+			Utils.errMsg(this,
+					"For restore, first a saved file must be copied to restore.txt.\n"
+							+ "Cannot find restore.txt in " + dir);
+			return;
+		}
+
+		// Confirm the user wants to delete all the current data
+		new AlertDialog.Builder(this)
+				.setIcon(android.R.drawable.ic_dialog_alert)
+				.setTitle(R.string.confirm)
+				.setMessage(R.string.delete_prompt)
+				.setPositiveButton(R.string.ok,
+						new DialogInterface.OnClickListener() {
+							@Override
+							public void onClick(DialogInterface dialog,
+									int which) {
+								restoreData();
+							}
+
+						}).setNegativeButton(R.string.cancel, null).show();
+	}
+
+	/**
+	 * Deletes the existing data without prompting and restores the new data.
+	 */
+	private void restoreData() {
+		BufferedReader in = null;
+		int lineNum = 0;
+		try {
+			File dir = getDatabaseDirectory();
+			if (dir == null) {
+				Utils.errMsg(this, "Cannot find Heart Monitor Directory");
+				return;
+			}
+			File file = new File(dir, RESTORE_FILE_NAME);
+			if (!file.exists()) {
+				Utils.errMsg(this,
+						"For restore, first a saved file must be copied to restore.txt.\n"
+								+ "Cannot find restore.txt in " + dir);
+				return;
+			}
+
+			// Delete all the data and recreate the table
+			mDbHelper.recreateTable();
+
+			// Read the file and get the data to restore
+			long dateMod = new Date().getTime();
+			String[] tokens = null;
+			String line = null;
+			int count = 0, total = 0;
+			String comment = null;
+			Date date = null;
+			int slash = -1;
+			in = new BufferedReader(new FileReader(file));
+			while ((line = in.readLine()) != null) {
+				lineNum++;
+				tokens = line.trim().split("\t");
+				// Skip blank lines
+				if (tokens.length == 0) {
+					continue;
+				}
+				// Skip lines starting with #
+				if (tokens[0].trim().startsWith("#")) {
+					continue;
+				}
+				if (tokens.length != 3) {
+					Utils.errMsg(this, "Found " + tokens.length
+							+ " tokens for line " + lineNum
+							+ "\nShould be 3 tokens");
+					return;
+				}
+				slash = tokens[0].indexOf("/");
+				if (slash < 0 || slash == tokens[0].length() - 1) {
+					Utils.errMsg(this, "count/total field is invalid |"
+							+ tokens[0] + "|");
+					return;
+				}
+				count = Integer.parseInt(tokens[0].substring(0, slash));
+				total = Integer.parseInt(tokens[0].substring(slash + 1).trim());
+				date = HeartMonitorActivity.longFormatter.parse(tokens[1]
+						.trim());
+				comment = tokens[2];
+				long id = mDbHelper.createData(date.getTime(), dateMod, count,
+						total, true, comment);
+				if (id < 0) {
+					Utils.errMsg(this, "Failed to create the entry for line "
+							+ lineNum);
+					return;
+				}
+			}
+			refresh();
+			Utils.infoMsg(this,
+					"Restored " + lineNum + " lines from " + file.getPath());
+		} catch (Exception ex) {
+			Utils.excMsg(this, "Error restoring at line " + lineNum, ex);
+		} finally {
+			try {
+				if (in != null) {
+					in.close();
+				}
 			} catch (Exception ex) {
 				// Do nothing
 			}

@@ -117,6 +117,16 @@ public class HeartMonitorDbAdapter implements IConstants {
 	}
 
 	/**
+	 * Delete all the data and recreate the table.
+	 * 
+	 * @return true if deleted, false otherwise
+	 */
+	public void recreateTable() {
+		mDb.execSQL("DROP TABLE IF EXISTS " + DB_TABLE);
+		mDb.execSQL(DB_CREATE);
+	}
+
+	/**
 	 * Return a Cursor over the list of all notes in the database
 	 * 
 	 * @return Cursor over all notes

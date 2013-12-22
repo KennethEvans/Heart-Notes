@@ -33,6 +33,11 @@ public interface IConstants {
 
 	/** Directory on the SD card where the database is stored */
 	public static final String SD_CARD_DB_DIRECTORY = "Heart Monitor";
+	/**
+	 * Name of the file that will be restored. It would typically be a file that
+	 * was previously saved and then renamed.
+	 */
+	public static final String RESTORE_FILE_NAME = "restore.txt";
 	/** Simple name of the database. */
 	public static final String DB_NAME = "HeartMonitor.db";
 	/** Simple name of the table. */
