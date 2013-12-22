@@ -3,9 +3,12 @@ package net.kenevans.heartmonitor;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileFilter;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.Locale;
 
@@ -394,6 +397,77 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 			Utils.errMsg(this, "Cannot find Heart Monitor Data Directory");
 			return;
 		}
+
+		// Find the .txt files in the data directory
+		final File[] files = mDataDir.listFiles(new FileFilter() {
+			@Override
+			public boolean accept(File file) {
+				if (file.isDirectory()) {
+					return false;
+				} else {
+					String[] extensions = { ".txt" };
+					String path = file.getAbsolutePath().toLowerCase(Locale.US);
+					for (int i = 0, n = extensions.length; i < n; i++) {
+						String extension = extensions[i];
+						if (path.endsWith(extension)) {
+							return true;
+						}
+					}
+				}
+				return false;
+			}
+		});
+		if (files == null || files.length == 0) {
+			Utils.errMsg(this, "There are no .txt files in the data directory");
+			return;
+		}
+
+		// Sort them by date with newest first
+		Arrays.sort(files, new Comparator<File>() {
+			public int compare(File f1, File f2) {
+				return Long.valueOf(f2.lastModified()).compareTo(
+						f1.lastModified());
+			}
+		});
+
+		// Prompt for the file to use
+		final CharSequence[] items = new CharSequence[files.length];
+		for (int i = 0; i < files.length; i++) {
+			items[i] = files[i].getName();
+		}
+		AlertDialog.Builder builder = new AlertDialog.Builder(this);
+		builder.setTitle(getText(R.string.select_restore_file));
+		builder.setSingleChoiceItems(items, 0,
+				new DialogInterface.OnClickListener() {
+					public void onClick(DialogInterface dialog, final int item) {
+						dialog.dismiss();
+						if (item < 0 || item >= files.length) {
+							Utils.errMsg(HeartMonitorActivity.this,
+									"Invalid item");
+							return;
+						}
+						// Confirm the user wants to delete all the current data
+						new AlertDialog.Builder(HeartMonitorActivity.this)
+								.setIcon(android.R.drawable.ic_dialog_alert)
+								.setTitle(R.string.confirm)
+								.setMessage(R.string.delete_prompt)
+								.setPositiveButton(R.string.ok,
+										new DialogInterface.OnClickListener() {
+											@Override
+											public void onClick(
+													DialogInterface dialog,
+													int which) {
+												restoreData(files[item]);
+											}
+
+										})
+								.setNegativeButton(R.string.cancel, null)
+								.show();
+					}
+				});
+		AlertDialog alert = builder.create();
+		alert.show();
+
 		File file = new File(mDataDir, RESTORE_FILE_NAME);
 		if (!file.exists()) {
 			Utils.errMsg(this,
@@ -402,38 +476,17 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 			return;
 		}
 
-		// Confirm the user wants to delete all the current data
-		new AlertDialog.Builder(this)
-				.setIcon(android.R.drawable.ic_dialog_alert)
-				.setTitle(R.string.confirm)
-				.setMessage(R.string.delete_prompt)
-				.setPositiveButton(R.string.ok,
-						new DialogInterface.OnClickListener() {
-							@Override
-							public void onClick(DialogInterface dialog,
-									int which) {
-								restoreData();
-							}
-
-						}).setNegativeButton(R.string.cancel, null).show();
 	}
 
 	/**
 	 * Deletes the existing data without prompting and restores the new data.
 	 */
-	private void restoreData() {
+	private void restoreData(File file) {
 		BufferedReader in = null;
 		int lineNum = 0;
 		try {
-			if (mDataDir == null) {
-				Utils.errMsg(this, "Cannot find Heart Monitor Directory");
-				return;
-			}
-			File file = new File(mDataDir, RESTORE_FILE_NAME);
 			if (!file.exists()) {
-				Utils.errMsg(this,
-						"For restore, first a saved file must be copied to restore.txt.\n"
-								+ "Cannot find restore.txt in " + mDataDir);
+				Utils.errMsg(this, "Cannot find:\n" + file.getPath());
 				return;
 			}
 
