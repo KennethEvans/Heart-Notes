@@ -11,6 +11,7 @@ import android.content.DialogInterface.OnCancelListener;
 import android.database.Cursor;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -52,7 +53,7 @@ public class DataEditActivity extends Activity implements IConstants {
 		super.onCreate(savedInstanceState);
 
 		// Debug
-		Log.v(TAG, "onCreate called");
+		Log.v(TAG, this.getClass().getSimpleName() + "onCreate called");
 
 		// The default state is cancelled and won't be changed until the users
 		// selects one of the buttons
@@ -66,12 +67,21 @@ public class DataEditActivity extends Activity implements IConstants {
 		mDateModText = (EditText) findViewById(R.id.datemod);
 		mEditedText = (EditText) findViewById(R.id.edited);
 		mCommentText = (EditText) findViewById(R.id.comment);
-
+		
+		mEditedText.setMovementMethod(new ScrollingMovementMethod());
+		
 		mRowId = (savedInstanceState == null) ? null
 				: (Long) savedInstanceState.getSerializable(COL_ID);
 		if (mRowId == null) {
 			Bundle extras = getIntent().getExtras();
 			mRowId = extras != null ? extras.getLong(COL_ID) : null;
+			// -1 indicates a new entry which is implemented as mRowId=null
+			if (mRowId == -1L) {
+				mRowId = null;
+			}
+		}
+		if(mDataDir == null) {
+			Bundle extras = getIntent().getExtras();
 			String dataDirName = extras != null ? extras
 					.getString(PREF_DATA_DIRECTORY) : null;
 			if (dataDirName != null) {
@@ -133,7 +143,7 @@ public class DataEditActivity extends Activity implements IConstants {
 	@Override
 	protected void onPause() {
 		// Debug
-		Log.v(TAG, "onPause called");
+		Log.v(TAG, this.getClass().getSimpleName() + "onPause called");
 		super.onPause();
 		// This gets called on every pause. Since the state is cancelled until a
 		// button is pushed, it doesn't do anything until a button is is pressed
@@ -144,7 +154,7 @@ public class DataEditActivity extends Activity implements IConstants {
 	@Override
 	protected void onResume() {
 		// DEBUG
-		Log.v(TAG, "onResume called");
+		Log.v(TAG, this.getClass().getSimpleName() + "onResume called");
 		super.onResume();
 		// We don't want to do this here. It causes the EditTexts to revert to
 		// the original values instead of what has been edited so far.
@@ -187,7 +197,8 @@ public class DataEditActivity extends Activity implements IConstants {
 
 	private void saveState() {
 		// DEBUG
-		Log.v(TAG, "saveState called mRowId=" + mRowId + " state=" + state);
+		Log.v(TAG, this.getClass().getSimpleName() + "saveState called mRowId="
+				+ mRowId + " state=" + state);
 		// Do nothing if cancelled
 		if (state == State.CANCELLED) {
 			return;
@@ -292,7 +303,8 @@ public class DataEditActivity extends Activity implements IConstants {
 			dialog.setIndeterminate(true);
 			dialog.setOnCancelListener(new OnCancelListener() {
 				public void onCancel(DialogInterface dialog) {
-					Log.d(TAG, GetWeatherTask.this.getClass().getSimpleName()
+					Log.d(TAG, this.getClass().getSimpleName()
+							+ GetWeatherTask.this.getClass().getSimpleName()
 							+ ": ProgressDialog.onCancel: Cancelled");
 					if (updateTask != null) {
 						updateTask.cancel(true);

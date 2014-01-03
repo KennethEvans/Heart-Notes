@@ -5,7 +5,7 @@
 	android:layout_height="fill_parent"
 	>
 	
-    <TableLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    <TableLayout 
 		android:layout_width="fill_parent" 
 		android:layout_height="wrap_content" 
 		android:stretchColumns="2"
@@ -78,9 +78,10 @@
 		android:gravity="center_horizontal"
 		android:layout_height="wrap_content" 
 		android:text="@string/comment_label" />
+	
 	<EditText android:id="@+id/comment" android:layout_width="fill_parent"
-		android:inputType="textCapSentences|textMultiLine"
-		android:maxLines ="4" 
+		android:inputType="textCapSentences|textMultiLine|textNoSuggestions"
+		android:maxLines ="15" 
 		android:layout_marginBottom="3dip"
 		android:gravity="top"
 		android:background="#fffae663"

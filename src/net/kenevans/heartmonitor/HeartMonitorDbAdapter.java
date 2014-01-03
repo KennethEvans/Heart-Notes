@@ -60,14 +60,14 @@ public class HeartMonitorDbAdapter implements IConstants {
 	public HeartMonitorDbAdapter open() throws SQLException {
 		// Make sure the directory exists and is available
 		if (mDataDir == null) {
-			Utils.errMsg(mCtx, "Cannot access database on SD card");
+			Utils.errMsg(mCtx, "Cannot access database");
 			return null;
 		}
 		if (!mDataDir.exists()) {
 			mDataDir.mkdirs();
 			// Try again
 			if (!mDataDir.exists()) {
-				Utils.errMsg(mCtx, "Unable to create directory on SD card");
+				Utils.errMsg(mCtx, "Unable to create database directory");
 				return null;
 			}
 		}

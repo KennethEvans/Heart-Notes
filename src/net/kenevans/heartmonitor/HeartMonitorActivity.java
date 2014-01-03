@@ -126,7 +126,7 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 		super.onListItemClick(lv, view, position, id);
 		Intent i = new Intent(this, DataEditActivity.class);
 		i.putExtra(COL_ID, id);
-		i.putExtra(PREF_DATA_DIRECTORY, mDataDir);
+		i.putExtra(PREF_DATA_DIRECTORY, mDataDir.getPath());
 		startActivityForResult(i, ACTIVITY_EDIT);
 	}
 
@@ -184,7 +184,7 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 	}
 
 	/**
-	 * Sets the current image directory
+	 * Sets the current data directory
 	 * 
 	 * @return
 	 */
@@ -247,6 +247,9 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 
 	private void createData() {
 		Intent i = new Intent(this, DataEditActivity.class);
+		i.putExtra(PREF_DATA_DIRECTORY, mDataDir.getPath());
+		// Use -1 for the COL_ID to indicate it is new
+		i.putExtra(COL_ID, -1L);
 		startActivityForResult(i, ACTIVITY_CREATE);
 		// Date date = new Date();
 		// Date dateMod = date;
