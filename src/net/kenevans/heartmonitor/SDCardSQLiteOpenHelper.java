@@ -164,7 +164,7 @@ public abstract class SDCardSQLiteOpenHelper {
 				if (mDatabase != null) {
 					try {
 						mDatabase.close();
-					} catch (Exception e) {
+					} catch (Exception ex) {
 						// Do nothing
 					}
 					// NOT AVAILABLE
@@ -220,11 +220,11 @@ public abstract class SDCardSQLiteOpenHelper {
 
 		try {
 			return getWritableDatabase();
-		} catch (SQLiteException e) {
+		} catch (SQLiteException ex) {
 			if (mName == null)
-				throw e; // Can't open a temp database read-only!
+				throw ex; // Can't open a temp database read-only!
 			Log.e(TAG, "Couldn't open " + mName
-					+ " for writing (will try read-only):", e);
+					+ " for writing (will try read-only):", ex);
 		}
 
 		SQLiteDatabase db = null;

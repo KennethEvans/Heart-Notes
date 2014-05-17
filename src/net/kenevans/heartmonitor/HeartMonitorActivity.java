@@ -21,6 +21,7 @@ import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.os.Bundle;
 import android.os.Environment;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -71,9 +72,14 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 			filter = 0;
 		}
 
-		mDataDir = getDataDirectory();
-		mDbHelper = new HeartMonitorDbAdapter(this, mDataDir);
-		mDbHelper.open();
+		// Open the database
+		try {
+			mDataDir = getDataDirectory();
+			mDbHelper = new HeartMonitorDbAdapter(this, mDataDir);
+			mDbHelper.open();
+		} catch(Exception ex) {
+			Utils.excMsg(this, "Error opening database at " + mDataDir, ex);
+		}
 
 		refresh();
 
@@ -595,6 +601,10 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 			Cursor cursor = mDbHelper.fetchAllData(filters[filter].selection);
 			// editingCursor = getContentResolver().query(editingURI, columns,
 			// "type=?", new String[] { "1" }, "_id DESC");
+			if(cursor == null) {
+				Log.e(TAG, "Couldn't get cursor for fetching data):");
+				return;
+			}
 			startManagingCursor(cursor);
 
 			// Manage the adapter
