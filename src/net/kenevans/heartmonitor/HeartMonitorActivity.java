@@ -176,7 +176,6 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 		}
 		if (dataDir == null) {
 			Utils.errMsg(this, "Data directory is null");
-			return null;
 		}
 		if (!dataDir.exists()) {
 			Utils.errMsg(this, "Cannot find directory: " + dataDir);
@@ -191,10 +190,6 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 	 * @return
 	 */
 	private void setDataDirectory() {
-		// DEBUG
-		// File file = this.getExternalFilesDir(null);
-		// Utils.infoMsg(this, "getExternalFilesDirectory:\n" + file.getPath());
-
 		AlertDialog.Builder alert = new AlertDialog.Builder(this);
 		alert.setTitle("Set Data Directory");
 		alert.setMessage("Data Directory (Leave blank for default):");
@@ -209,6 +204,28 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 		}
 		alert.setView(input);
 
+		// DEBUG
+		// File file = this.getExternalFilesDir(null);
+		// Utils.infoMsg(this, "getExternalFilesDirectory:\n" + file.getPath());
+		File[] files = this.getExternalFilesDirs(null);
+		String info = "";
+		if (files == null) {
+			info += "getExternalFilesDirs returned null\n\n";
+		} else {
+			info += "Number of getExternalFilesDirs=" + files.length + "\n\n";
+			for (File file : files) {
+				info += file.getPath() + "\n";
+			}
+		}
+		info += "Current data directory:\n" + imageDirName + "\n";
+		String path1 = files[1].getPath();
+		if (imageDirName.equals(path1)) {
+			info += "Same";
+		} else {
+			info += "Different";
+		}
+		Utils.infoMsg(this, info);
+
 		alert.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
 			public void onClick(DialogInterface dialog, int whichButton) {
 				String value = input.getText().toString();
@@ -221,9 +238,9 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 				} else {
 					dataDir = new File(value);
 				}
-				if (!dataDir.exists()) {
+				if (dataDir == null) {
 					Utils.errMsg(HeartMonitorActivity.this,
-							"Directory does not exist:\n" + dataDir.getPath());
+							"Directory is null\n");
 					return;
 				}
 				mDataDir = dataDir;
@@ -231,6 +248,11 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 						.edit();
 				editor.putString(PREF_DATA_DIRECTORY, mDataDir.getPath());
 				editor.commit();
+				if (!dataDir.exists()) {
+					Utils.errMsg(HeartMonitorActivity.this,
+							"Directory does not exist:\n" + dataDir.getPath());
+					return;
+				}
 				if (mDbHelper != null) {
 					mDbHelper.close();
 				}
