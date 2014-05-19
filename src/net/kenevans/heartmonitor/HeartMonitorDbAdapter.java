@@ -63,16 +63,22 @@ public class HeartMonitorDbAdapter implements IConstants {
 			Utils.errMsg(mCtx, "Cannot access database");
 			return null;
 		}
-		if (!mDataDir.exists()) {
-			mDataDir.mkdirs();
-			// Try again
+		try {
 			if (!mDataDir.exists()) {
-				Utils.errMsg(mCtx, "Unable to create database directory");
-				return null;
+				mDataDir.mkdirs();
+				// Try again
+				if (!mDataDir.exists()) {
+					Utils.errMsg(mCtx,
+							"Unable to create database directory at "
+									+ mDataDir);
+					return null;
+				}
 			}
+			mDbHelper = new DatabaseHelper(mDataDir.getPath());
+			mDb = mDbHelper.getWritableDatabase();
+		} catch (Exception ex) {
+			Utils.excMsg(mCtx, "Error opening database at " + mDataDir, ex);
 		}
-		mDbHelper = new DatabaseHelper(mDataDir.getPath());
-		mDb = mDbHelper.getWritableDatabase();
 		return this;
 	}
 
@@ -95,6 +101,10 @@ public class HeartMonitorDbAdapter implements IConstants {
 	 */
 	public long createData(long date, long dateMod, long count, long total,
 			boolean edited, String comment) {
+		if (mDb == null) {
+			Utils.errMsg(mCtx, "Failed to create data. Database is null.");
+			return -1;
+		}
 		ContentValues values = new ContentValues();
 		values.put(COL_DATE, date);
 		values.put(COL_DATEMOD, dateMod);

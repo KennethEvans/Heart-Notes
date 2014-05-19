@@ -73,13 +73,9 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 		}
 
 		// Open the database
-		try {
-			mDataDir = getDataDirectory();
-			mDbHelper = new HeartMonitorDbAdapter(this, mDataDir);
-			mDbHelper.open();
-		} catch (Exception ex) {
-			Utils.excMsg(this, "Error opening database at " + mDataDir, ex);
-		}
+		mDataDir = getDataDirectory();
+		mDbHelper = new HeartMonitorDbAdapter(this, mDataDir);
+		mDbHelper.open();
 
 		refresh();
 

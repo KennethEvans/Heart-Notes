@@ -63,13 +63,13 @@ public class DataEditActivity extends Activity implements IConstants {
 
 		mCountText = (EditText) findViewById(R.id.count);
 		mTotalText = (EditText) findViewById(R.id.total);
-		mDateText = (EditText) findViewById(R.id.date);
+		mDateText = (EditText) findViewById(R.id.timestamp);
 		mDateModText = (EditText) findViewById(R.id.datemod);
 		mEditedText = (EditText) findViewById(R.id.edited);
 		mCommentText = (EditText) findViewById(R.id.comment);
-		
+
 		mEditedText.setMovementMethod(new ScrollingMovementMethod());
-		
+
 		mRowId = (savedInstanceState == null) ? null
 				: (Long) savedInstanceState.getSerializable(COL_ID);
 		if (mRowId == null) {
@@ -80,7 +80,7 @@ public class DataEditActivity extends Activity implements IConstants {
 				mRowId = null;
 			}
 		}
-		if(mDataDir == null) {
+		if (mDataDir == null) {
 			Bundle extras = getIntent().getExtras();
 			String dataDirName = extras != null ? extras
 					.getString(PREF_DATA_DIRECTORY) : null;

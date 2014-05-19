@@ -18,6 +18,7 @@
 			<EditText android:id="@+id/count"
 			    android:inputType="number"
 		 		android:background="#fff0d424"
+		 		android:textColor="#ff000000"
 			  	android:layout_width="wrap_content"
 				android:layout_height="wrap_content" 
 				android:layout_weight="1" />
@@ -30,6 +31,7 @@
 			<EditText android:id="@+id/total" 
 			    android:inputType="number"
 		 		android:background="#fff0d424"
+		 		android:textColor="#ff000000"
 			  	android:layout_width="wrap_content"
 				android:layout_height="wrap_content" 
 				android:layout_weight="1" />
@@ -39,9 +41,10 @@
 			    android:layout_marginRight="10dip"
 				android:layout_height="wrap_content" 
 				android:text="@string/date_label" />
-			<EditText android:id="@+id/date" 
+			<EditText android:id="@+id/timestamp" 
 			    android:inputType="text"
 		 		android:background="#fff0d424"
+		 		android:textColor="#ff000000"
 			  	android:layout_width="wrap_content"
 				android:layout_height="wrap_content" 
 				android:layout_weight="1" />
@@ -55,6 +58,7 @@
 			    android:enabled="false"
 			    android:inputType="text"
 		 		android:background="#fff0a024"
+		 		android:textColor="#ff000000"
 			  	android:layout_width="wrap_content"
 				android:layout_height="wrap_content" 
 				android:layout_weight="1" />
@@ -68,6 +72,7 @@
 			    android:enabled="false"
 			    android:inputType="text"
 		 		android:background="#fff0a024"
+		 		android:textColor="#ff000000"
 			  	android:layout_width="wrap_content"
 				android:layout_height="wrap_content" 
 				android:layout_weight="1" />
@@ -85,6 +90,7 @@
 		android:layout_marginBottom="3dip"
 		android:gravity="top"
 		android:background="#fffae663"
+		android:textColor="#ff000000"
 		android:layout_height="0dip"
 		android:layout_weight="1"
 		android:scrollbars="vertical" />
