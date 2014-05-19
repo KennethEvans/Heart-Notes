@@ -77,7 +77,7 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 			mDataDir = getDataDirectory();
 			mDbHelper = new HeartMonitorDbAdapter(this, mDataDir);
 			mDbHelper.open();
-		} catch(Exception ex) {
+		} catch (Exception ex) {
 			Utils.excMsg(this, "Error opening database at " + mDataDir, ex);
 		}
 
@@ -195,6 +195,10 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 	 * @return
 	 */
 	private void setDataDirectory() {
+		// DEBUG
+		// File file = this.getExternalFilesDir(null);
+		// Utils.infoMsg(this, "getExternalFilesDirectory:\n" + file.getPath());
+
 		AlertDialog.Builder alert = new AlertDialog.Builder(this);
 		alert.setTitle("Set Data Directory");
 		alert.setMessage("Data Directory (Leave blank for default):");
@@ -234,9 +238,14 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 				if (mDbHelper != null) {
 					mDbHelper.close();
 				}
-				mDbHelper = new HeartMonitorDbAdapter(
-						HeartMonitorActivity.this, mDataDir);
-				mDbHelper.open();
+				try {
+					mDbHelper = new HeartMonitorDbAdapter(
+							HeartMonitorActivity.this, mDataDir);
+					mDbHelper.open();
+				} catch (Exception ex) {
+					Utils.excMsg(HeartMonitorActivity.this,
+							"Error opening database at " + mDataDir, ex);
+				}
 				refresh();
 			}
 		});
@@ -601,7 +610,7 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 			Cursor cursor = mDbHelper.fetchAllData(filters[filter].selection);
 			// editingCursor = getContentResolver().query(editingURI, columns,
 			// "type=?", new String[] { "1" }, "_id DESC");
-			if(cursor == null) {
+			if (cursor == null) {
 				Log.e(TAG, "Couldn't get cursor for fetching data):");
 				return;
 			}
