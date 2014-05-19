@@ -207,24 +207,25 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 		// DEBUG
 		// File file = this.getExternalFilesDir(null);
 		// Utils.infoMsg(this, "getExternalFilesDirectory:\n" + file.getPath());
-		File[] files = this.getExternalFilesDirs(null);
-		String info = "";
-		if (files == null) {
-			info += "getExternalFilesDirs returned null\n\n";
-		} else {
-			info += "Number of getExternalFilesDirs=" + files.length + "\n\n";
-			for (File file : files) {
-				info += file.getPath() + "\n";
-			}
-		}
-		info += "Current data directory:\n" + imageDirName + "\n";
-		String path1 = files[1].getPath();
-		if (imageDirName.equals(path1)) {
-			info += "Same";
-		} else {
-			info += "Different";
-		}
-		Utils.infoMsg(this, info);
+		// Debug 4.4.2
+		// File[] files = this.getExternalFilesDirs(null);
+		// String info = "";
+		// if (files == null) {
+		// info += "getExternalFilesDirs returned null\n\n";
+		// } else {
+		// info += "Number of getExternalFilesDirs=" + files.length + "\n\n";
+		// for (File file : files) {
+		// info += file.getPath() + "\n";
+		// }
+		// }
+		// info += "Current data directory:\n" + imageDirName + "\n";
+		// String path1 = files[1].getPath();
+		// if (imageDirName.equals(path1)) {
+		// info += "Same";
+		// } else {
+		// info += "Different";
+		// }
+		// Utils.infoMsg(this, info);
 
 		alert.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
 			public void onClick(DialogInterface dialog, int whichButton) {
