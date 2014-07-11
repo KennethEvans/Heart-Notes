@@ -554,12 +554,14 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 					Utils.errMsg(this, "Found " + tokens.length
 							+ " tokens for line " + lineNum
 							+ "\nShould be 3 tokens");
+					in.close();
 					return;
 				}
 				slash = tokens[0].indexOf("/");
 				if (slash < 0 || slash == tokens[0].length() - 1) {
 					Utils.errMsg(this, "count/total field is invalid |"
 							+ tokens[0] + "|");
+					in.close();
 					return;
 				}
 				count = Integer.parseInt(tokens[0].substring(0, slash));
@@ -572,6 +574,7 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 				if (id < 0) {
 					Utils.errMsg(this, "Failed to create the entry for line "
 							+ lineNum);
+					in.close();
 					return;
 				}
 			}
@@ -719,7 +722,7 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 
 		@Override
 		public View newView(Context context, Cursor cursor, ViewGroup parent) {
-			return inflater.inflate(R.layout.list_row, null);
+			return inflater.inflate(R.layout.list_row, parent, false);
 		}
 
 	}
