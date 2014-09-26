@@ -42,7 +42,7 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 	/** Template for the name of the file written to the SD card */
 	private static final String sdCardFileNameTemplate = "HeartMonitor.%s.txt";
 
-	private HeartMonitorDbAdapter mDbHelper;
+	private HeartMonitorDbAdapter mDbAdapter;
 	private CustomCursorAdapter adapter;
 	private File mDataDir;
 
@@ -74,8 +74,11 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 
 		// Open the database
 		mDataDir = getDataDirectory();
-		mDbHelper = new HeartMonitorDbAdapter(this, mDataDir);
-		mDbHelper.open();
+		if(mDataDir == null) {
+			return;
+		}
+		mDbAdapter = new HeartMonitorDbAdapter(this, mDataDir);
+		mDbAdapter.open();
 
 		refresh();
 
@@ -254,13 +257,13 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 							"Directory does not exist:\n" + dataDir.getPath());
 					return;
 				}
-				if (mDbHelper != null) {
-					mDbHelper.close();
+				if (mDbAdapter != null) {
+					mDbAdapter.close();
 				}
 				try {
-					mDbHelper = new HeartMonitorDbAdapter(
+					mDbAdapter = new HeartMonitorDbAdapter(
 							HeartMonitorActivity.this, mDataDir);
-					mDbHelper.open();
+					mDbAdapter.open();
 				} catch (Exception ex) {
 					Utils.excMsg(HeartMonitorActivity.this,
 							"Error opening database at " + mDataDir, ex);
@@ -290,7 +293,7 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 		// int count = (int) Math.round(Math.random() * 60);
 		// int total = 60;
 		// String comment = "This is a test";
-		// mDbHelper.createData(date.getTime(), dateMod.getTime(), count, total,
+		// mDbAdapter.createData(date.getTime(), dateMod.getTime(), count, total,
 		// false, comment);
 	}
 
@@ -372,7 +375,7 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 			File file = new File(mDataDir, fileName);
 			FileWriter writer = new FileWriter(file);
 			out = new BufferedWriter(writer);
-			cursor = mDbHelper.fetchAllData(filters[filter].selection);
+			cursor = mDbAdapter.fetchAllData(filters[filter].selection);
 			// int indexId = cursor.getColumnIndex(COL_ID);
 			int indexDate = cursor.getColumnIndex(COL_DATE);
 			// int indexDateMod = cursor.getColumnIndex(COL_DATEMOD);
@@ -528,7 +531,7 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 			}
 
 			// Delete all the data and recreate the table
-			mDbHelper.recreateTable();
+			mDbAdapter.recreateTable();
 
 			// Read the file and get the data to restore
 			long dateMod = new Date().getTime();
@@ -569,7 +572,7 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 				date = HeartMonitorActivity.longFormatter.parse(tokens[1]
 						.trim());
 				comment = tokens[2];
-				long id = mDbHelper.createData(date.getTime(), dateMod, count,
+				long id = mDbAdapter.createData(date.getTime(), dateMod, count,
 						total, true, comment);
 				if (id < 0) {
 					Utils.errMsg(this, "Failed to create the entry for line "
@@ -629,7 +632,7 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 		try {
 			// Get the available columns from all rows
 			// String selection = COL_ID + "<=76" + " OR " + COL_ID + "=13";
-			Cursor cursor = mDbHelper.fetchAllData(filters[filter].selection);
+			Cursor cursor = mDbAdapter.fetchAllData(filters[filter].selection);
 			// editingCursor = getContentResolver().query(editingURI, columns,
 			// "type=?", new String[] { "1" }, "_id DESC");
 			if (cursor == null) {

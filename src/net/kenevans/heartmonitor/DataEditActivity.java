@@ -24,7 +24,7 @@ import android.widget.EditText;
  * Manages editing a set of data. Done similarly to the Notes example.
  */
 public class DataEditActivity extends Activity implements IConstants {
-	private HeartMonitorDbAdapter mDbHelper;
+	private HeartMonitorDbAdapter mDbAdapter;
 	private EditText mCountText;
 	private EditText mTotalText;
 	private EditText mDateText;
@@ -89,8 +89,8 @@ public class DataEditActivity extends Activity implements IConstants {
 			}
 		}
 
-		mDbHelper = new HeartMonitorDbAdapter(this, mDataDir);
-		mDbHelper.open();
+		mDbAdapter = new HeartMonitorDbAdapter(this, mDataDir);
+		mDbAdapter.open();
 
 		// Save
 		Button button = (Button) findViewById(R.id.save);
@@ -206,7 +206,7 @@ public class DataEditActivity extends Activity implements IConstants {
 		// Delete if deleted and there is a row ID
 		if (state == State.DELETED) {
 			if (mRowId != null) {
-				mDbHelper.deleteData(mRowId);
+				mDbAdapter.deleteData(mRowId);
 			}
 			return;
 		}
@@ -240,7 +240,7 @@ public class DataEditActivity extends Activity implements IConstants {
 		if (mRowId == null) {
 			// Is new
 			edited = false;
-			long id = mDbHelper.createData(date, dateMod, count, total, edited,
+			long id = mDbAdapter.createData(date, dateMod, count, total, edited,
 					comment);
 			if (id > 0) {
 				mRowId = id;
@@ -248,7 +248,7 @@ public class DataEditActivity extends Activity implements IConstants {
 		} else {
 			// Is edited
 			edited = true;
-			mDbHelper.updateData(mRowId, date, dateMod, count, total, edited,
+			mDbAdapter.updateData(mRowId, date, dateMod, count, total, edited,
 					comment);
 		}
 	}
@@ -258,7 +258,7 @@ public class DataEditActivity extends Activity implements IConstants {
 	 */
 	private void populateFields() {
 		if (mRowId != null) {
-			Cursor cursor = mDbHelper.fetchData(mRowId);
+			Cursor cursor = mDbAdapter.fetchData(mRowId);
 			startManagingCursor(cursor);
 			mCountText.setText(cursor.getString(cursor
 					.getColumnIndexOrThrow(COL_COUNT)));
