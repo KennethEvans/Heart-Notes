@@ -48,8 +48,8 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 
 	/** Array of hard-coded filters */
 	protected Filter[] filters;
-	/** The current filter. */
-	private int filter = 0;
+	/** The current mFilter. */
+	private int mFilter = 0;
 
 	/** Called when the activity is first created. */
 	@Override
@@ -67,9 +67,9 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 
 		// Get the preferences here before refresh()
 		SharedPreferences prefs = getPreferences(MODE_PRIVATE);
-		filter = prefs.getInt("filter", 0);
-		if (filter < 0 || filter >= filters.length) {
-			filter = 0;
+		mFilter = prefs.getInt("mFilter", 0);
+		if (mFilter < 0 || mFilter >= filters.length) {
+			mFilter = 0;
 		}
 
 		// Open the database
@@ -375,7 +375,7 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 			File file = new File(mDataDir, fileName);
 			FileWriter writer = new FileWriter(file);
 			out = new BufferedWriter(writer);
-			cursor = mDbAdapter.fetchAllData(filters[filter].selection);
+			cursor = mDbAdapter.fetchAllData(filters[mFilter].selection);
 			// int indexId = cursor.getColumnIndex(COL_ID);
 			int indexDate = cursor.getColumnIndex(COL_DATE);
 			// int indexDateMod = cursor.getColumnIndex(COL_DATEMOD);
@@ -497,6 +497,7 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 											public void onClick(
 													DialogInterface dialog,
 													int which) {
+												dialog.dismiss();
 												restoreData(files[item]);
 											}
 
@@ -507,15 +508,6 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 				});
 		AlertDialog alert = builder.create();
 		alert.show();
-
-		File file = new File(mDataDir, RESTORE_FILE_NAME);
-		if (!file.exists()) {
-			Utils.errMsg(this,
-					"For restore, first a saved file must be copied to restore.txt.\n"
-							+ "Cannot find restore.txt in " + mDataDir);
-			return;
-		}
-
 	}
 
 	/**
@@ -598,7 +590,7 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 	}
 
 	/**
-	 * Bring up a dialog to change the filter order.
+	 * Bring up a dialog to change the mFilter order.
 	 */
 	private void setFilter() {
 		final CharSequence[] items = new CharSequence[filters.length];
@@ -607,16 +599,16 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 		}
 		AlertDialog.Builder builder = new AlertDialog.Builder(this);
 		builder.setTitle(getText(R.string.filter_title));
-		builder.setSingleChoiceItems(items, filter,
+		builder.setSingleChoiceItems(items, mFilter,
 				new DialogInterface.OnClickListener() {
 					public void onClick(DialogInterface dialog, int item) {
 						dialog.dismiss();
 						if (item < 0 || item >= filters.length) {
 							Utils.errMsg(HeartMonitorActivity.this,
-									"Invalid filter");
-							filter = 0;
+									"Invalid mFilter");
+							mFilter = 0;
 						} else {
-							filter = item;
+							mFilter = item;
 						}
 						refresh();
 					}
@@ -632,7 +624,7 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 		try {
 			// Get the available columns from all rows
 			// String selection = COL_ID + "<=76" + " OR " + COL_ID + "=13";
-			Cursor cursor = mDbAdapter.fetchAllData(filters[filter].selection);
+			Cursor cursor = mDbAdapter.fetchAllData(filters[mFilter].selection);
 			// editingCursor = getContentResolver().query(editingURI, columns,
 			// "type=?", new String[] { "1" }, "_id DESC");
 			if (cursor == null) {
@@ -658,12 +650,12 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 
 		// Save the preferences
 		SharedPreferences.Editor editor = getPreferences(MODE_PRIVATE).edit();
-		editor.putInt("filter", filter);
+		editor.putInt("mFilter", mFilter);
 		editor.commit();
 	}
 
 	/**
-	 * Class to manage a filter.
+	 * Class to manage a mFilter.
 	 */
 	private static class Filter {
 		private CharSequence name;
