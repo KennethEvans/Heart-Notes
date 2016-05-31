@@ -130,6 +130,9 @@ public class HeartNotesActivity extends ListActivity implements IConstants {
             case R.id.setdatadirectory:
                 setDataDirectory();
                 return true;
+            case R.id.help:
+                showHelp();
+                return true;
         }
         return false;
     }
@@ -281,7 +284,7 @@ public class HeartNotesActivity extends ListActivity implements IConstants {
         alert.setNegativeButton("Cancel",
                 new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int
-							whichButton) {
+                            whichButton) {
                         // Do nothing
                     }
                 });
@@ -301,8 +304,25 @@ public class HeartNotesActivity extends ListActivity implements IConstants {
         // int total = 60;
         // String comment = "This is a test";
         // mDbAdapter.createData(date.getTime(), dateMod.getTime(), count,
-		// total,
+        // total,
         // false, comment);
+    }
+
+    /**
+     * Show the help.
+     */
+    private void showHelp() {
+        try {
+            // Start theInfoActivity
+            Intent intent = new Intent();
+            intent.setClass(this, InfoActivity.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK
+                    | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            intent.putExtra(INFO_URL, "file:///android_asset/heartnotes.html");
+            startActivity(intent);
+        } catch (Exception ex) {
+            Utils.excMsg(this, getString(R.string.help_show_error), ex);
+        }
     }
 
     /**
@@ -485,7 +505,7 @@ public class HeartNotesActivity extends ListActivity implements IConstants {
         builder.setSingleChoiceItems(items, 0,
                 new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, final int
-							item) {
+                            item) {
                         dialog.dismiss();
                         if (item < 0 || item >= files.length) {
                             Utils.errMsg(HeartNotesActivity.this,

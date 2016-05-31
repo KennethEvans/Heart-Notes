@@ -27,6 +27,8 @@
             android:name="net.kenevans.heartnotes.DataEditActivity"
             android:label="@string/edit_data" >
         </activity>
-        </application>
+        <activity android:name=".InfoActivity" android:label="@string/help_title">
+        </activity>
+    </application>
 
 </manifest>
