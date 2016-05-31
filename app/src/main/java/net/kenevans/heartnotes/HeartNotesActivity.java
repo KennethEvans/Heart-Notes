@@ -1,4 +1,4 @@
-package net.kenevans.heartmonitor;
+package net.kenevans.heartnotes;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -38,13 +38,13 @@ import android.widget.TextView;
  * Contractions (PVCs) at a given time. The database implementation is similar
  * to the Notes example, but the database is on the SD card.
  */
-public class HeartMonitorActivity extends ListActivity implements IConstants {
+public class HeartNotesActivity extends ListActivity implements IConstants {
     /**
      * Template for the name of the file written to the SD card
      */
-    private static final String sdCardFileNameTemplate = "HeartMonitor.%s.txt";
+    private static final String sdCardFileNameTemplate = "HeartNotes.%s.txt";
 
-    private HeartMonitorDbAdapter mDbAdapter;
+    private HeartNotesrDbAdapter mDbAdapter;
     private CustomCursorAdapter adapter;
     private File mDataDir;
 
@@ -85,7 +85,7 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
         if (mDataDir == null) {
             return;
         }
-        mDbAdapter = new HeartMonitorDbAdapter(this, mDataDir);
+        mDbAdapter = new HeartNotesrDbAdapter(this, mDataDir);
         mDbAdapter.open();
 
         refresh();
@@ -249,7 +249,7 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
                     dataDir = new File(value);
                 }
                 if (dataDir == null) {
-                    Utils.errMsg(HeartMonitorActivity.this,
+                    Utils.errMsg(HeartNotesActivity.this,
                             "Directory is null\n");
                     return;
                 }
@@ -259,7 +259,7 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
                 editor.putString(PREF_DATA_DIRECTORY, mDataDir.getPath());
                 editor.commit();
                 if (!dataDir.exists()) {
-                    Utils.errMsg(HeartMonitorActivity.this,
+                    Utils.errMsg(HeartNotesActivity.this,
                             "Directory does not exist:\n" + dataDir.getPath());
                     return;
                 }
@@ -267,11 +267,11 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
                     mDbAdapter.close();
                 }
                 try {
-                    mDbAdapter = new HeartMonitorDbAdapter(
-                            HeartMonitorActivity.this, mDataDir);
+                    mDbAdapter = new HeartNotesrDbAdapter(
+                            HeartNotesActivity.this, mDataDir);
                     mDbAdapter.open();
                 } catch (Exception ex) {
-                    Utils.excMsg(HeartMonitorActivity.this,
+                    Utils.excMsg(HeartNotesActivity.this,
                             "Error opening database at " + mDataDir, ex);
                 }
                 refresh();
@@ -312,7 +312,7 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
      * @return The formatted date.
      */
     public static String formatDate(Long dateNum) {
-        return formatDate(HeartMonitorActivity.longFormatter, dateNum);
+        return formatDate(HeartNotesActivity.longFormatter, dateNum);
     }
 
     /**
@@ -439,7 +439,7 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
      */
     private void checkRestore() {
         if (mDataDir == null) {
-            Utils.errMsg(this, "Cannot find Heart Monitor Data Directory");
+            Utils.errMsg(this, "Cannot find Heart Notes Data Directory");
             return;
         }
 
@@ -488,12 +488,12 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
 							item) {
                         dialog.dismiss();
                         if (item < 0 || item >= files.length) {
-                            Utils.errMsg(HeartMonitorActivity.this,
+                            Utils.errMsg(HeartNotesActivity.this,
                                     "Invalid item");
                             return;
                         }
                         // Confirm the user wants to delete all the current data
-                        new AlertDialog.Builder(HeartMonitorActivity.this)
+                        new AlertDialog.Builder(HeartNotesActivity.this)
                                 .setIcon(android.R.drawable.ic_dialog_alert)
                                 .setTitle(R.string.confirm)
                                 .setMessage(R.string.delete_prompt)
@@ -567,7 +567,7 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
                 }
                 count = Integer.parseInt(tokens[0].substring(0, slash));
                 total = Integer.parseInt(tokens[0].substring(slash + 1).trim());
-                date = HeartMonitorActivity.longFormatter.parse(tokens[1]
+                date = HeartNotesActivity.longFormatter.parse(tokens[1]
                         .trim());
                 comment = tokens[2];
                 long id = mDbAdapter.createData(date.getTime(), dateMod, count,
@@ -610,7 +610,7 @@ public class HeartMonitorActivity extends ListActivity implements IConstants {
                     public void onClick(DialogInterface dialog, int item) {
                         dialog.dismiss();
                         if (item < 0 || item >= filters.length) {
-                            Utils.errMsg(HeartMonitorActivity.this,
+                            Utils.errMsg(HeartNotesActivity.this,
                                     "Invalid mFilter");
                             mFilter = 0;
                         } else {

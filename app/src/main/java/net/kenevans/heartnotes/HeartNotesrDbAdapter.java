@@ -1,4 +1,4 @@
-package net.kenevans.heartmonitor;
+package net.kenevans.heartnotes;
 
 import java.io.File;
 
@@ -19,7 +19,7 @@ import android.util.Log;
  * of using a collection of inner classes (which is less scalable and not
  * recommended).
  */
-public class HeartMonitorDbAdapter implements IConstants {
+public class HeartNotesrDbAdapter implements IConstants {
     private DatabaseHelper mDbHelper;
     private SQLiteDatabase mDb;
     private final Context mCtx;
@@ -42,7 +42,7 @@ public class HeartMonitorDbAdapter implements IConstants {
      * @param ctx     The context.
      * @param dataDir The location of the data.
      */
-    public HeartMonitorDbAdapter(Context ctx, File dataDir) {
+    public HeartNotesrDbAdapter(Context ctx, File dataDir) {
         mCtx = ctx;
         mDataDir = dataDir;
     }
@@ -56,7 +56,7 @@ public class HeartMonitorDbAdapter implements IConstants {
      * initialization call)
      * @throws SQLException if the database could be neither opened or created
      */
-    public HeartMonitorDbAdapter open() throws SQLException {
+    public HeartNotesrDbAdapter open() throws SQLException {
         // Make sure the directory exists and is available
         if (mDataDir == null) {
             Utils.errMsg(mCtx, "Cannot access database");

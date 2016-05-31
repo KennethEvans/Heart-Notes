@@ -5,7 +5,7 @@ android {
     buildToolsVersion "22.0.0"
 
     defaultConfig {
-        applicationId "net.kenevans.heartmonitor"
+        applicationId "net.kenevans.heartnotes"
         minSdkVersion 8
         targetSdkVersion 19
     }

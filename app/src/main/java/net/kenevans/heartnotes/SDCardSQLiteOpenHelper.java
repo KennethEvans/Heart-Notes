@@ -1,4 +1,4 @@
-package net.kenevans.heartmonitor;
+package net.kenevans.heartnotes;
 
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteDatabase.CursorFactory;

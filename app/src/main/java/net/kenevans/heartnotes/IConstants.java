@@ -19,7 +19,7 @@
 //TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 //SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-package net.kenevans.heartmonitor;
+package net.kenevans.heartnotes;
 
 import java.text.SimpleDateFormat;
 import java.util.Locale;
@@ -32,12 +32,12 @@ public interface IConstants {
     /**
      * Tag to associate with log messages.
      */
-    String TAG = "HeartMonitor";
+    String TAG = "HeartNotes";
 
     /**
      * Directory on the SD card where the database is stored
      */
-    String SD_CARD_DB_DIRECTORY = "Heart Monitor";
+    String SD_CARD_DB_DIRECTORY = "Heart Notes";
     /**
      * Name of the file that will be restored. It would typically be a file
      * that
@@ -47,7 +47,7 @@ public interface IConstants {
     /**
      * Simple name of the database.
      */
-    String DB_NAME = "HeartMonitor.db";
+    String DB_NAME = "HeartNotes.db";
     /**
      * Simple name of the table.
      */

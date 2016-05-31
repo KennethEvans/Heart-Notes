@@ -1,4 +1,4 @@
-package net.kenevans.heartmonitor;
+package net.kenevans.heartnotes;
 
 import java.io.File;
 import java.text.ParseException;
@@ -24,7 +24,7 @@ import android.widget.EditText;
  * Manages editing a set of data. Done similarly to the Notes example.
  */
 public class DataEditActivity extends Activity implements IConstants {
-	private HeartMonitorDbAdapter mDbAdapter;
+	private HeartNotesrDbAdapter mDbAdapter;
 	private EditText mCountText;
 	private EditText mTotalText;
 	private EditText mDateText;
@@ -89,7 +89,7 @@ public class DataEditActivity extends Activity implements IConstants {
 			}
 		}
 
-		mDbAdapter = new HeartMonitorDbAdapter(this, mDataDir);
+		mDbAdapter = new HeartNotesrDbAdapter(this, mDataDir);
 		mDbAdapter.open();
 
 		// Save
@@ -265,9 +265,9 @@ public class DataEditActivity extends Activity implements IConstants {
 			mTotalText.setText(cursor.getString(cursor
 					.getColumnIndexOrThrow(COL_TOTAL)));
 			long time = cursor.getLong(cursor.getColumnIndexOrThrow(COL_DATE));
-			mDateText.setText(HeartMonitorActivity.formatDate(time));
+			mDateText.setText(HeartNotesActivity.formatDate(time));
 			time = cursor.getLong(cursor.getColumnIndexOrThrow(COL_DATEMOD));
-			mDateModText.setText(HeartMonitorActivity.formatDate(time));
+			mDateModText.setText(HeartNotesActivity.formatDate(time));
 			long val = cursor.getLong(cursor.getColumnIndexOrThrow(COL_EDITED));
 			mEditedText.setText(val == 0 ? "false" : "true");
 			mCommentText.setText(cursor.getString(cursor
@@ -278,9 +278,9 @@ public class DataEditActivity extends Activity implements IConstants {
 			mTotalText.setText("60");
 			mEditedText.setText("false");
 			Date now = new Date();
-			mDateText.setText(HeartMonitorActivity.formatDate(now.getTime()));
+			mDateText.setText(HeartNotesActivity.formatDate(now.getTime()));
 			mDateModText
-					.setText(HeartMonitorActivity.formatDate(now.getTime()));
+					.setText(HeartNotesActivity.formatDate(now.getTime()));
 		}
 	}
 
