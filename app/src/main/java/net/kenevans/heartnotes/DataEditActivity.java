@@ -128,7 +128,6 @@ public class DataEditActivity extends Activity implements IConstants {
             public void onClick(View view) {
                 // Debug
                 Log.v(TAG, "Delete Button");
-
                 String msg = DataEditActivity.this.getString(
                         R.string.note_delete_prompt);
                 new AlertDialog.Builder(DataEditActivity.this)
