@@ -116,11 +116,28 @@ public class DataEditActivity extends Activity implements IConstants {
             public void onClick(View view) {
                 // Debug
                 Log.v(TAG, "Cancel Button");
-                state = State.CANCELLED;
-                setResult(RESULT_CANCELED);
-                finish();
+                String msg = DataEditActivity.this.getString(
+                        R.string.note_cancel_prompt);
+                new AlertDialog.Builder(DataEditActivity.this)
+                        .setIcon(android.R.drawable.ic_dialog_alert)
+                        .setTitle(R.string.confirm)
+                        .setMessage(msg)
+                        .setPositiveButton(R.string.ok,
+                                new DialogInterface.OnClickListener() {
+                                    @Override
+                                    public void onClick(DialogInterface dialog,
+                                                        int which) {
+                                        dialog.dismiss();
+                                        state = State.CANCELLED;
+                                        setResult(RESULT_CANCELED);
+                                        finish();
+                                    }
+                                })
+                        .setNegativeButton(R.string.continue_editing_label,
+                                null).show();
             }
         });
+        populateFields();
 
         // Delete
         button = (Button) findViewById(R.id.delete);
@@ -144,8 +161,9 @@ public class DataEditActivity extends Activity implements IConstants {
                                         setResult(RESULT_OK);
                                         finish();
                                     }
-                                }).setNegativeButton(R.string.cancel, null)
-                        .show();
+                                })
+                        .setNegativeButton(R.string.continue_editing_label,
+                                null).show();
             }
         });
         populateFields();
@@ -165,9 +183,8 @@ public class DataEditActivity extends Activity implements IConstants {
         // Debug
         Log.v(TAG, this.getClass().getSimpleName() + "onPause called");
         super.onPause();
-        // This gets called on every pause. Since the state is cancelled until a
-        // button is pushed, it doesn't do anything until a button is is pressed
-        // and calls finish().
+        // This gets called on every pause. Since the state is CANCELLED until a
+        // button is tapped, it doesn't typically do anything here.
         saveState();
     }
 
@@ -176,9 +193,6 @@ public class DataEditActivity extends Activity implements IConstants {
         // DEBUG
         Log.v(TAG, this.getClass().getSimpleName() + "onResume called");
         super.onResume();
-        // We don't want to do this here. It causes the EditTexts to revert to
-        // the original values instead of what has been edited so far.
-        // populateFields();
     }
 
     @Override
@@ -199,12 +213,13 @@ public class DataEditActivity extends Activity implements IConstants {
         return false;
     }
 
-    private void insertWeather() {
-        // FIXME
-        // Workaround until Google Weather API becomes available or a substitute
-        // is found
-        // mCommentText.append("Temp: Humidity: %");
+    /**
+     * Starts a GetWeatherTask.
+     *
+     * @see GetWeatherTask
+     */
 
+    private void insertWeather() {
         if (updateTask != null) {
             // Don't do anything if we are updating
             Log.d(TAG, this.getClass().getSimpleName()
@@ -215,6 +230,11 @@ public class DataEditActivity extends Activity implements IConstants {
         updateTask.execute();
     }
 
+    /**
+     * Updates the database, depending on the state. If the state is
+     * CANCELLED, it does nothing. It it is DELETE, the record is deleted.
+     * Otherwise it creates or updates the record as appropriate.
+     */
     private void saveState() {
         // DEBUG
         Log.v(TAG, this.getClass().getSimpleName() + "saveState called mRowId="
@@ -234,7 +254,6 @@ public class DataEditActivity extends Activity implements IConstants {
         // Don't use entries for edited and dateMod, set them
         String comment;
         long count, total, date, dateMod;
-        boolean edited;
         String string;
         try {
             comment = mCommentText.getText().toString();
@@ -259,22 +278,20 @@ public class DataEditActivity extends Activity implements IConstants {
         dateMod = new Date().getTime();
         if (mRowId == null) {
             // Is new
-            edited = false;
-            long id = mDbAdapter.createData(date, dateMod, count, total, edited,
+            long id = mDbAdapter.createData(date, dateMod, count, total, false,
                     comment);
             if (id > 0) {
                 mRowId = id;
             }
         } else {
             // Is edited
-            edited = true;
-            mDbAdapter.updateData(mRowId, date, dateMod, count, total, edited,
+            mDbAdapter.updateData(mRowId, date, dateMod, count, total, true,
                     comment);
         }
     }
 
     /**
-     * Initializes the fields.
+     * Initializes the edit fields.
      */
     private void populateFields() {
         if (mRowId != null) {
@@ -304,6 +321,9 @@ public class DataEditActivity extends Activity implements IConstants {
         }
     }
 
+    /**
+     * An AsyncTask to get the weather from the web.
+     */
     private class GetWeatherTask extends AsyncTask<Void, Void, Boolean> {
         private ProgressDialog dialog;
         private String[] vals;

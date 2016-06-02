@@ -30,7 +30,9 @@
     <string name="filter_none">None</string>
     <string name="filter_title">Select Filter</string>
 
+    <string name="note_cancel_prompt">Cancelling.  Any changes will be lost.  Continue?</string>
     <string name="note_delete_prompt">Deleting this note.  This cannot be undone.  Continue?</string>
+    <string name="continue_editing_label">Back to Edit</string>
 
 
     <!-- Info/Help -->
