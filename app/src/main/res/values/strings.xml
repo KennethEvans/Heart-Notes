@@ -1,20 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Heart Notes</string>
-	<string name="Filter_item">Filter</string>
-	<string name="new_item">New</string>
-	<string name="refresh_item">Refresh</string>
-	<string name="restore_item">Restore</string>
-	<string name="set_data_directory_item">Set Data Directory</string>
-	<string name="save_item">Save as Text</string>
-	<string name="save">Save</string>
-	<string name="tostart_item">Beginning</string>
-	<string name="toend_item">End</string>
-	<string name="delete">Delete</string>
-	<string name="delete_prompt">All existing data will be deleted</string>
-	<string name="confirm">Confirm</string>
-	<string name="select_restore_file">Select File to Restore</string>
-	<string name="cancel">Cancel</string>
+    <string name="Filter_item">Filter</string>
+    <string name="new_item">New</string>
+    <string name="refresh_item">Refresh</string>
+    <string name="restore_item">Restore</string>
+    <string name="set_data_directory_item">Set Data Directory</string>
+    <string name="save_item">Save as Text</string>
+    <string name="save">Save</string>
+    <string name="tostart_item">Beginning</string>
+    <string name="toend_item">End</string>
+    <string name="delete">Delete</string>
+    <string name="delete_prompt">All existing data will be deleted</string>
+    <string name="confirm">Confirm</string>
+    <string name="select_restore_file">Select File to Restore</string>
+    <string name="cancel">Cancel</string>
+    <string name="false_string">false</string>
     <string name="edit_data">Edit Data</string>
     <string name="count_label">Count</string>
     <string name="total_label">Total</string>
@@ -22,23 +23,26 @@
     <string name="datemod_label">Modified Time</string>
     <string name="edited_label">Edited</string>
     <string name="comment_label">Comment</string>
-	<string name="weather_item">Insert Weather</string>
-    
+    <string name="weather_item">Insert Weather</string>
+
     <string name="filter_nonzero">Count is not Zero</string>
     <string name="filter_counttotal">Count equals Total</string>
     <string name="filter_none">None</string>
-	<string name="filter_title">Select Filter</string>
+    <string name="filter_title">Select Filter</string>
 
-	<!-- Info/Help -->
-	<string name="help_url_not_found">Cannot find Help URL</string>
-	<string name="help_item">Help</string>
-	<string name="help_title">Help</string>
-	<string name="help_show_error">Error showing help</string>
+    <string name="note_delete_prompt">Deleting this note.  This cannot be undone.  Continue?</string>
 
-	<!-- Utils -->
-	<string name="error">Error</string>
-	<string name="exception">Exception</string>
-	<string name="info">Info</string>
-	<string name="ok">OK</string>
-	<string name="warning">Warning</string>
+
+    <!-- Info/Help -->
+    <string name="help_url_not_found">Cannot find Help URL</string>
+    <string name="help_item">Help</string>
+    <string name="help_title">Help</string>
+    <string name="help_show_error">Error showing help</string>
+
+    <!-- Utils -->
+    <string name="error">Error</string>
+    <string name="exception">Exception</string>
+    <string name="info">Info</string>
+    <string name="ok">OK</string>
+    <string name="warning">Warning</string>
 </resources>
