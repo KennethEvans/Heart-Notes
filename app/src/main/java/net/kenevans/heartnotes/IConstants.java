@@ -38,16 +38,11 @@ public interface IConstants {
      * Directory on the SD card where the database is stored
      */
     String SD_CARD_DB_DIRECTORY = "Heart Notes";
-    /**
-     * Name of the file that will be restored. It would typically be a file
-     * that
-     * was previously saved and then renamed.
-     */
-    String RESTORE_FILE_NAME = "restore.txt";
+
     /**
      * Simple name of the database.
      */
-    String DB_NAME = "HeartNotes.db";
+    String DB_NAME = "HeartNotes.db";    /**
     /**
      * Simple name of the table.
      */
@@ -110,19 +105,6 @@ public interface IConstants {
      * Request code for editing data.
      */
     int ACTIVITY_EDIT = 1;
-
-    /**
-     * Request code for displaying a message.
-     */
-    int DISPLAY_MESSAGE = 0;
-    /**
-     * Result code for ACTIVITY_DISPLAY_MESSAGE indicating the previous message.
-     */
-    int RESULT_PREV = 1000;
-    /**
-     * Result code for ACTIVITY_DISPLAY_MESSAGE indicating the next message.
-     */
-    int RESULT_NEXT = 1001;
 
     /**
      * The static long formatter to use for formatting dates.
