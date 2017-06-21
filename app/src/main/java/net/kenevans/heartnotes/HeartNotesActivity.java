@@ -168,9 +168,15 @@ public class HeartNotesActivity extends ListActivity implements IConstants {
     @Override
     protected void onListItemClick(ListView lv, View view, int position, long
             id) {
-        super.onListItemClick(lv, view, position, id);
+//        super.onListItemClick(lv, view, position, id);
+        Log.d(TAG, this.getClass().getSimpleName() + ": onListItemClick: " +
+                "position="
+                + position + " id=" + id);
+        final Data data = mListAdapter.getData(position);
+        if (data == null) return;
+        Log.d(TAG, "data: id=" + data.getId() + " " + data.getComment());
         Intent i = new Intent(this, DataEditActivity.class);
-        i.putExtra(COL_ID, id);
+        i.putExtra(COL_ID, data.getId());
         i.putExtra(PREF_DATA_DIRECTORY, mDataDir.getPath());
         startActivityForResult(i, ACTIVITY_EDIT);
     }
@@ -701,13 +707,13 @@ public class HeartNotesActivity extends ListActivity implements IConstants {
      * Class to manage the data needed for an item in the ListView.
      */
     private static class Data {
-        private String id;
+        private long id;
         private String comment;
         private long dateNum = -1;
         private int count;
         private int total;
 
-        public Data(String id, String comment, long dateNum, int count, int
+        public Data(long id, String comment, long dateNum, int count, int
                 total) {
             this.id = id;
             this.comment = comment;
@@ -716,7 +722,7 @@ public class HeartNotesActivity extends ListActivity implements IConstants {
             this.total = total;
         }
 
-        private String getId() {
+        private long getId() {
             return id;
         }
 
@@ -773,7 +779,7 @@ public class HeartNotesActivity extends ListActivity implements IConstants {
                     cursor.moveToFirst();
                     while (!cursor.isAfterLast()) {
                         nItems++;
-                        String id = cursor.getString(indexId);
+                        long id = cursor.getLong(indexId);
                         String comment = "<Comment NA>";
                         if (indexComment > -1) {
                             comment = cursor.getString(indexComment);
@@ -814,7 +820,7 @@ public class HeartNotesActivity extends ListActivity implements IConstants {
             }
         }
 
-        public Data getData(int position) {
+        private Data getData(int position) {
             return mData.get(position);
         }
 
@@ -848,14 +854,16 @@ public class HeartNotesActivity extends ListActivity implements IConstants {
                         false);
                 viewHolder = new ViewHolder();
                 viewHolder.title = view.findViewById(R.id.title);
-                viewHolder.subTitle = view.findViewById(R.id.subtitle);
+                viewHolder.subTitle = view.findViewById(R.id
+                        .subtitle);
                 view.setTag(viewHolder);
             } else {
                 viewHolder = (ViewHolder) view.getTag();
             }
 
             Data data = mData.get(i);
-            viewHolder.title.setText(data.getId() + ": " + data.getCount() +
+            viewHolder.title.setText(String.format(Locale.US, "%d", data
+                    .getId()) + ": " + data.getCount() +
                     "/" + data.getTotal() + " at "
                     + formatDate(data.getDateNum()));
             viewHolder.subTitle.setText(data.getComment());

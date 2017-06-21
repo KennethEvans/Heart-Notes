@@ -59,7 +59,7 @@ public class DataEditActivity extends Activity implements IConstants {
         super.onCreate(savedInstanceState);
 
         // Debug
-        Log.v(TAG, this.getClass().getSimpleName() + "onCreate called");
+        Log.v(TAG, this.getClass().getSimpleName() + ": onCreate called");
 
         // The default state is cancelled and won't be changed until the users
         // selects one of the buttons
@@ -67,12 +67,12 @@ public class DataEditActivity extends Activity implements IConstants {
 
         setContentView(R.layout.data_edit);
 
-        mCountText = (EditText) findViewById(R.id.count);
-        mTotalText = (EditText) findViewById(R.id.total);
-        mDateText = (EditText) findViewById(R.id.timestamp);
-        mDateModText = (EditText) findViewById(R.id.datemod);
-        mEditedText = (EditText) findViewById(R.id.edited);
-        mCommentText = (EditText) findViewById(R.id.comment);
+        mCountText = findViewById(R.id.count);
+        mTotalText = findViewById(R.id.total);
+        mDateText = findViewById(R.id.timestamp);
+        mDateModText = findViewById(R.id.datemod);
+        mEditedText = findViewById(R.id.edited);
+        mCommentText = findViewById(R.id.comment);
 
         mEditedText.setMovementMethod(new ScrollingMovementMethod());
 
@@ -82,7 +82,7 @@ public class DataEditActivity extends Activity implements IConstants {
             Bundle extras = getIntent().getExtras();
             mRowId = extras != null ? extras.getLong(COL_ID) : null;
             // -1 indicates a new entry which is implemented as mRowId=null
-            if (mRowId == -1L) {
+            if (mRowId != null && mRowId == -1L) {
                 mRowId = null;
             }
         }
@@ -99,7 +99,7 @@ public class DataEditActivity extends Activity implements IConstants {
         mDbAdapter.open();
 
         // Save
-        Button button = (Button) findViewById(R.id.save);
+        Button button = findViewById(R.id.save);
         button.setOnClickListener(new View.OnClickListener() {
             public void onClick(View view) {
                 // Debug
@@ -111,7 +111,7 @@ public class DataEditActivity extends Activity implements IConstants {
         });
 
         // Cancel
-        button = (Button) findViewById(R.id.cancel);
+        button = findViewById(R.id.cancel);
         button.setOnClickListener(new View.OnClickListener() {
             public void onClick(View view) {
                 // Debug
@@ -140,7 +140,7 @@ public class DataEditActivity extends Activity implements IConstants {
         populateFields();
 
         // Delete
-        button = (Button) findViewById(R.id.delete);
+        button = findViewById(R.id.delete);
         button.setOnClickListener(new View.OnClickListener() {
             public void onClick(View view) {
                 // Debug
@@ -296,7 +296,6 @@ public class DataEditActivity extends Activity implements IConstants {
     private void populateFields() {
         if (mRowId != null) {
             Cursor cursor = mDbAdapter.fetchData(mRowId);
-            startManagingCursor(cursor);
             mCountText.setText(cursor.getString(cursor
                     .getColumnIndexOrThrow(COL_COUNT)));
             mTotalText.setText(cursor.getString(cursor
@@ -311,8 +310,8 @@ public class DataEditActivity extends Activity implements IConstants {
                     .getColumnIndexOrThrow(COL_COMMENT)));
         } else {
             // A new data, set defaults
-            mCountText.setText("0");
-            mTotalText.setText("60");
+            mCountText.setText(R.string.default_count);
+            mTotalText.setText(R.string.default_total);
             mEditedText.setText(R.string.false_string);
             Date now = new Date();
             mDateText.setText(HeartNotesActivity.formatDate(now.getTime()));
@@ -325,38 +324,11 @@ public class DataEditActivity extends Activity implements IConstants {
      * An AsyncTask to get the weather from the web.
      */
     private class GetWeatherTask extends AsyncTask<Void, Void, Boolean> {
-        private ProgressDialog dialog;
         private String[] vals;
 
         // public GetWeatherTask() {
         // super();
         // }
-
-        @Override
-        protected void onPreExecute() {
-            // DEBUG TIME
-            // Log.d(TAG, this.getClass().getSimpleName()
-            // + ": onPreExecute: delta(1)=" + getDeltaTime());
-            dialog = new ProgressDialog(DataEditActivity.this);
-            dialog.setMessage("Getting Weather");
-            dialog.setCancelable(true);
-            dialog.setIndeterminate(true);
-            dialog.setOnCancelListener(new OnCancelListener() {
-                public void onCancel(DialogInterface dialog) {
-                    Log.d(TAG, this.getClass().getSimpleName()
-                            + GetWeatherTask.this.getClass().getSimpleName()
-                            + ": ProgressDialog.onCancel: Cancelled");
-                    if (updateTask != null) {
-                        updateTask.cancel(true);
-                        updateTask = null;
-                    }
-                }
-            });
-            dialog.show();
-            // DEBUG TIME
-            // Log.d(TAG, this.getClass().getSimpleName()
-            // + ": onPreExecute: delta(2)=" + getDeltaTime());
-        }
 
         @Override
         protected Boolean doInBackground(Void... dummy) {
@@ -377,9 +349,6 @@ public class DataEditActivity extends Activity implements IConstants {
         protected void onPostExecute(Boolean result) {
             Log.d(TAG, this.getClass().getSimpleName()
                     + ": onPostExecute: result=" + result);
-            if (dialog != null) {
-                dialog.dismiss();
-            }
             // // Should not be called if it is cancelled
             // if (isCancelled()) {
             // updateTask = null;
