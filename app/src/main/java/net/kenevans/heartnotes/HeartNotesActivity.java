@@ -7,6 +7,7 @@ import java.io.FileFilter;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Date;
@@ -28,6 +29,7 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.BaseAdapter;
 import android.widget.CursorAdapter;
 import android.widget.EditText;
 import android.widget.ListView;
@@ -45,7 +47,7 @@ public class HeartNotesActivity extends ListActivity implements IConstants {
     private static final String sdCardFileNameTemplate = "HeartNotes.%s.txt";
 
     private HeartNotesrDbAdapter mDbAdapter;
-    private CustomCursorAdapter adapter;
+    private CustomListAdapter mListAdapter;
     private File mDataDir;
 
     /**
@@ -93,6 +95,32 @@ public class HeartNotesActivity extends ListActivity implements IConstants {
         // Position it to the end
         positionListView(true);
 
+    }
+
+    @Override
+    protected void onResume() {
+        Log.d(TAG, this.getClass().getSimpleName() + ": onResume");
+        super.onResume();
+        refresh();
+    }
+
+    @Override
+    protected void onPause() {
+        Log.d(TAG, this.getClass().getSimpleName() + ": onPause");
+        super.onPause();
+        if (mListAdapter != null) {
+            mListAdapter.clear();
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        Log.d(TAG, this.getClass().getSimpleName() + ": onDestroy");
+        super.onDestroy();
+        if (mDbAdapter != null) {
+            mDbAdapter.close();
+            mDbAdapter = null;
+        }
     }
 
     @Override
@@ -186,7 +214,7 @@ public class HeartNotesActivity extends ListActivity implements IConstants {
                 SharedPreferences.Editor editor = getPreferences(MODE_PRIVATE)
                         .edit();
                 editor.putString(PREF_DATA_DIRECTORY, dataDir.getPath());
-                editor.commit();
+                editor.apply();
             }
         }
         if (dataDir == null) {
@@ -260,7 +288,7 @@ public class HeartNotesActivity extends ListActivity implements IConstants {
                 SharedPreferences.Editor editor = getPreferences(MODE_PRIVATE)
                         .edit();
                 editor.putString(PREF_DATA_DIRECTORY, mDataDir.getPath());
-                editor.commit();
+                editor.apply();
                 if (!dataDir.exists()) {
                     Utils.errMsg(HeartNotesActivity.this,
                             "Directory does not exist:\n" + dataDir.getPath());
@@ -440,12 +468,12 @@ public class HeartNotesActivity extends ListActivity implements IConstants {
             Utils.excMsg(this, "Error saving to SD card", ex);
         } finally {
             try {
-                cursor.close();
+                if (cursor != null) cursor.close();
             } catch (Exception ex) {
                 // Do nothing
             }
             try {
-                out.close();
+                if (out != null) out.close();
             } catch (Exception ex) {
                 // Do nothing
             }
@@ -472,8 +500,7 @@ public class HeartNotesActivity extends ListActivity implements IConstants {
                 } else {
                     String[] extensions = {".txt"};
                     String path = file.getAbsolutePath().toLowerCase(Locale.US);
-                    for (int i = 0, n = extensions.length; i < n; i++) {
-                        String extension = extensions[i];
+                    for (String extension : extensions) {
                         if (path.endsWith(extension)) {
                             return true;
                         }
@@ -647,41 +674,18 @@ public class HeartNotesActivity extends ListActivity implements IConstants {
      * Gets a new cursor and starts managing it.
      */
     private void refresh() {
-        try {
-            // Get the available columns from all rows
-            // String selection = COL_ID + "<=76" + " OR " + COL_ID + "=13";
-            Cursor cursor = mDbAdapter.fetchAllData(filters[mFilter].selection);
-            // editingCursor = getContentResolver().query(editingURI, columns,
-            // "type=?", new String[] { "1" }, "_id DESC");
-            if (cursor == null) {
-                Log.e(TAG, "Couldn't get cursor for fetching data):");
-                return;
-            }
-            startManagingCursor(cursor);
-
-            // Manage the adapter
-            if (adapter == null) {
-                // Set a custom cursor adapter
-                adapter = new CustomCursorAdapter(getApplicationContext(),
-                        cursor);
-                setListAdapter(adapter);
-            } else {
-                // This should close the current cursor and start using the new
-                // one, hopefully avoiding memory leaks.
-                adapter.changeCursor(cursor);
-            }
-        } catch (Exception ex) {
-            Utils.excMsg(this, "Error finding messages", ex);
-        }
+        // Initialize the list view mAapter
+        mListAdapter = new CustomListAdapter();
+        setListAdapter(mListAdapter);
 
         // Save the preferences
         SharedPreferences.Editor editor = getPreferences(MODE_PRIVATE).edit();
         editor.putInt("mFilter", mFilter);
-        editor.commit();
+        editor.apply();
     }
 
     /**
-     * Class to manage a mFilter.
+     * Class to manage a Filter.
      */
     private static class Filter {
         private CharSequence name;
@@ -693,8 +697,52 @@ public class HeartNotesActivity extends ListActivity implements IConstants {
         }
     }
 
-    private class CustomCursorAdapter extends CursorAdapter {
-        private LayoutInflater inflater;
+    /**
+     * Class to manage the data needed for an item in the ListView.
+     */
+    private static class Data {
+        private String id;
+        private String comment;
+        private long dateNum = -1;
+        private int count;
+        private int total;
+
+        public Data(String id, String comment, long dateNum, int count, int
+                total) {
+            this.id = id;
+            this.comment = comment;
+            this.dateNum = dateNum;
+            this.count = count;
+            this.total = total;
+        }
+
+        private String getId() {
+            return id;
+        }
+
+        private String getComment() {
+            return comment;
+        }
+
+        private long getDateNum() {
+            return dateNum;
+        }
+
+        private int getCount() {
+            return count;
+        }
+
+        private int getTotal() {
+            return total;
+        }
+    }
+
+    /**
+     * ListView adapter class for this activity.
+     */
+    private class CustomListAdapter extends BaseAdapter {
+        private ArrayList<Data> mData;
+        private LayoutInflater mInflator;
         private int indexId;
         private int indexDate;
         private int indexCount;
@@ -703,49 +751,124 @@ public class HeartNotesActivity extends ListActivity implements IConstants {
         // private int indexEdited;
         private int indexComment;
 
-        public CustomCursorAdapter(Context context, Cursor cursor) {
-            super(context, cursor);
-            inflater = LayoutInflater.from(context);
-            indexId = cursor.getColumnIndex(COL_ID);
-            indexDate = cursor.getColumnIndex(COL_DATE);
-            // indexDateMod = cursor.getColumnIndex(COL_DATEMOD);
-            indexCount = cursor.getColumnIndex(COL_COUNT);
-            indexTotal = cursor.getColumnIndex(COL_TOTAL);
-            // indexEdited = cursor.getColumnIndex(COL_EDITED);
-            indexComment = cursor.getColumnIndex(COL_COMMENT);
+        private CustomListAdapter() {
+            super();
+            mData = new ArrayList<>();
+            mInflator = HeartNotesActivity.this.getLayoutInflater();
+            Cursor cursor = null;
+            int nItems = 0;
+            try {
+                if (mDbAdapter != null) {
+                    cursor = mDbAdapter.fetchAllData(filters[mFilter]
+                            .selection);
+                    indexId = cursor.getColumnIndex(COL_ID);
+                    indexDate = cursor.getColumnIndex(COL_DATE);
+                    // indexDateMod = cursor.getColumnIndex(COL_DATEMOD);
+                    indexCount = cursor.getColumnIndex(COL_COUNT);
+                    indexTotal = cursor.getColumnIndex(COL_TOTAL);
+                    // indexEdited = cursor.getColumnIndex(COL_EDITED);
+                    indexComment = cursor.getColumnIndex(COL_COMMENT);
+
+                    // Loop over items
+                    cursor.moveToFirst();
+                    while (!cursor.isAfterLast()) {
+                        nItems++;
+                        String id = cursor.getString(indexId);
+                        String comment = "<Comment NA>";
+                        if (indexComment > -1) {
+                            comment = cursor.getString(indexComment);
+                        }
+                        Long dateNum = -1L;
+                        if (indexDate > -1) {
+                            dateNum = cursor.getLong(indexDate);
+                        }
+                        int count = -1;
+                        if (indexCount > -1) {
+                            count = cursor.getInt(indexCount);
+                        }
+                        int total = -1;
+                        if (indexTotal > -1) {
+                            total = cursor.getInt(indexTotal);
+                        }
+                        addData(new Data(id, comment, dateNum, count, total));
+                        cursor.moveToNext();
+                    }
+                }
+                if (cursor != null) cursor.close();
+            } catch (Exception ex) {
+                Utils.excMsg(HeartNotesActivity.this,
+                        "Error getting data", ex);
+            } finally {
+                try {
+                    if (cursor != null) cursor.close();
+                } catch (Exception ex) {
+                    // Do nothing
+                }
+            }
+            Log.d(TAG, "Data list created with " + nItems + " items");
+        }
+
+        private void addData(Data data) {
+            if (!mData.contains(data)) {
+                mData.add(data);
+            }
+        }
+
+        public Data getData(int position) {
+            return mData.get(position);
+        }
+
+        private void clear() {
+            mData.clear();
         }
 
         @Override
-        public void bindView(View view, Context context, Cursor cursor) {
-            TextView title = (TextView) view.findViewById(R.id.title);
-            TextView subtitle = (TextView) view.findViewById(R.id.subtitle);
-            String id = cursor.getString(indexId);
-            String comment = "<Comment NA>";
-            if (indexComment > -1) {
-                comment = cursor.getString(indexComment);
-            }
-            Long dateNum = -1L;
-            if (indexDate > -1) {
-                dateNum = cursor.getLong(indexDate);
-            }
-            int count = -1;
-            if (indexCount > -1) {
-                count = cursor.getInt(indexCount);
-            }
-            int total = -1;
-            if (indexTotal > -1) {
-                total = cursor.getInt(indexTotal);
-            }
-            title.setText(id + ": " + count + "/" + total + " at "
-                    + formatDate(dateNum));
-            subtitle.setText(comment);
+        public int getCount() {
+            return mData.size();
         }
 
         @Override
-        public View newView(Context context, Cursor cursor, ViewGroup parent) {
-            return inflater.inflate(R.layout.list_row, parent, false);
+        public Object getItem(int i) {
+            return mData.get(i);
         }
 
+        @Override
+        public long getItemId(int i) {
+            return i;
+        }
+
+        @Override
+        public View getView(int i, View view, ViewGroup viewGroup) {
+            // // DEBUG
+            // Log.d(TAG, "getView: " + i);
+            ViewHolder viewHolder;
+            // General ListView optimization code.
+            if (view == null) {
+                view = mInflator.inflate(R.layout.list_row, viewGroup,
+                        false);
+                viewHolder = new ViewHolder();
+                viewHolder.title = view.findViewById(R.id.title);
+                viewHolder.subTitle = view.findViewById(R.id.subtitle);
+                view.setTag(viewHolder);
+            } else {
+                viewHolder = (ViewHolder) view.getTag();
+            }
+
+            Data data = mData.get(i);
+            viewHolder.title.setText(data.getId() + ": " + data.getCount() +
+                    "/" + data.getTotal() + " at "
+                    + formatDate(data.getDateNum()));
+            viewHolder.subTitle.setText(data.getComment());
+            return view;
+        }
+    }
+
+    /**
+     * Convience class for managing views for a ListView row.
+     */
+    private static class ViewHolder {
+        TextView title;
+        TextView subTitle;
     }
 
 }
