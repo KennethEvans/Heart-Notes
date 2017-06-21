@@ -1,11 +1,13 @@
 apply plugin: 'com.android.application'
 android {
-    compileSdkVersion 23
-    buildToolsVersion '25.0.2'
+    compileSdkVersion 26
+    buildToolsVersion '26.0.0'
     defaultConfig {
         applicationId "net.kenevans.heartnotes"
-        minSdkVersion 8
+        minSdkVersion 11
         targetSdkVersion 23
+        versionCode 8
+        versionName '3.0'
     }
     buildTypes {
         release {
