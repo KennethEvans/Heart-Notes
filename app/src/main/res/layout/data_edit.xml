@@ -13,6 +13,7 @@
 		<TableRow android:layout_marginBottom="3dip" >
 			<TextView
 			    android:layout_marginRight="10dip"
+				android:layout_marginEnd="10dip"
 				android:layout_height="wrap_content" 
 				android:text="@string/count_label" />
 			<EditText android:id="@+id/count"
@@ -26,7 +27,8 @@
 		<TableRow android:layout_marginBottom="3dip" >
 			<TextView
 			    android:layout_marginRight="10dip"
-				android:layout_height="wrap_content" 
+                android:layout_marginEnd="10dip"
+				android:layout_height="wrap_content"
 				android:text="@string/total_label" />
 			<EditText android:id="@+id/total" 
 			    android:inputType="number"
@@ -39,7 +41,8 @@
 		<TableRow android:layout_marginBottom="3dip" >
 			<TextView
 			    android:layout_marginRight="10dip"
-				android:layout_height="wrap_content" 
+                android:layout_marginEnd="10dip"
+				android:layout_height="wrap_content"
 				android:text="@string/date_label" />
 			<EditText android:id="@+id/timestamp" 
 			    android:inputType="text"
@@ -52,7 +55,8 @@
 		<TableRow android:layout_marginBottom="3dip" >
 			<TextView
 			    android:layout_marginRight="10dip"
-				android:layout_height="wrap_content" 
+                android:layout_marginEnd="10dip"
+				android:layout_height="wrap_content"
 				android:text="@string/datemod_label" />
 			<EditText android:id="@+id/datemod" 
 			    android:enabled="false"
@@ -66,7 +70,8 @@
 		<TableRow android:layout_marginBottom="3dip" >
 			<TextView
 			    android:layout_marginRight="10dip"
-				android:layout_height="wrap_content" 
+                android:layout_marginEnd="10dip"
+				android:layout_height="wrap_content"
 				android:text="@string/edited_label" />
 			<EditText android:id="@+id/edited" 
 			    android:enabled="false"
@@ -85,7 +90,7 @@
 		android:text="@string/comment_label" />
 	
 	<EditText android:id="@+id/comment" android:layout_width="fill_parent"
-		android:inputType="textCapSentences|textMultiLine|textNoSuggestions"
+		android:inputType="textCapSentences|textMultiLine"
 		android:maxLines ="15" 
 		android:layout_marginBottom="3dip"
 		android:gravity="top"
@@ -100,17 +105,20 @@
 		android:layout_width="fill_parent"
 		android:layout_height="wrap_content">
 		<Button android:id="@+id/delete"
+                style="?android:attr/buttonBarButtonStyle"
 				android:text="@string/delete"
 				android:layout_width="wrap_content"
 				android:layout_height="wrap_content" />
 		<Button android:id="@+id/cancel"
+                style="?android:attr/buttonBarButtonStyle"
 				android:text="@string/cancel"
 				android:layout_width="wrap_content"
 				android:layout_height="wrap_content" />
 		<Button android:id="@+id/save"
-		    android:text="@string/save"
-			android:layout_width="wrap_content"
-			android:layout_height="wrap_content" />
+                style="?android:attr/buttonBarButtonStyle"
+		        android:text="@string/save"
+			    android:layout_width="wrap_content"
+			    android:layout_height="wrap_content" />
 	</LinearLayout>
 
 </LinearLayout>
