@@ -1,5 +1,26 @@
 package net.kenevans.heartnotes;
 
+import android.app.AlertDialog;
+import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.database.Cursor;
+import android.os.Bundle;
+import android.os.Environment;
+import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
+import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.BaseAdapter;
+import android.widget.EditText;
+import android.widget.ListView;
+import android.widget.TextView;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -13,34 +34,12 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.Locale;
 
-import android.app.AlertDialog;
-import android.app.ListActivity;
-import android.content.Context;
-import android.content.DialogInterface;
-import android.content.Intent;
-import android.content.SharedPreferences;
-import android.database.Cursor;
-import android.os.Bundle;
-import android.os.Environment;
-import android.util.Log;
-import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.BaseAdapter;
-import android.widget.CursorAdapter;
-import android.widget.EditText;
-import android.widget.ListView;
-import android.widget.TextView;
-
 /**
  * Manages a database with entries for the number of Premature Ventricular
  * Contractions (PVCs) at a given time. The database implementation is similar
  * to the Notes example, but the database is on the SD card.
  */
-public class HeartNotesActivity extends ListActivity implements IConstants {
+public class HeartNotesActivity extends AppCompatActivity implements IConstants {
     /**
      * Template for the name of the file written to the SD card
      */
@@ -49,6 +48,7 @@ public class HeartNotesActivity extends ListActivity implements IConstants {
     private HeartNotesrDbAdapter mDbAdapter;
     private CustomListAdapter mListAdapter;
     private File mDataDir;
+    private ListView mListView;
 
     /**
      * Array of hard-coded filters
@@ -65,7 +65,16 @@ public class HeartNotesActivity extends ListActivity implements IConstants {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.main);
+        setContentView(R.layout.list_view);
+        mListView = findViewById(R.id.mainListView);
+        mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view,
+                                    int position, long id) {
+                onListItemClick(mListView, view, position, id);
+            }
+        });
+
 
         // Create filters here so getText is available
         filters = new Filter[]{
@@ -165,7 +174,6 @@ public class HeartNotesActivity extends ListActivity implements IConstants {
         return false;
     }
 
-    @Override
     protected void onListItemClick(ListView lv, View view, int position, long
             id) {
 //        super.onListItemClick(lv, view, position, id);
@@ -402,15 +410,10 @@ public class HeartNotesActivity extends ListActivity implements IConstants {
      * @param toEnd True to go to the end, false to go to the beginning.
      */
     private void positionListView(final boolean toEnd) {
-        final ListView lv = this.getListView();
-        if (lv == null) {
-            Utils.errMsg(this, "Error positioning ListView");
-            return;
-        }
-        lv.post(new Runnable() {
+        mListView.post(new Runnable() {
             public void run() {
-                int pos = toEnd ? lv.getCount() - 1 : 0;
-                lv.setSelection(pos);
+                int pos = toEnd ? mListView.getCount() - 1 : 0;
+                mListView.setSelection(pos);
             }
         });
     }
@@ -682,7 +685,7 @@ public class HeartNotesActivity extends ListActivity implements IConstants {
     private void refresh() {
         // Initialize the list view mAapter
         mListAdapter = new CustomListAdapter();
-        setListAdapter(mListAdapter);
+        mListView.setAdapter(mListAdapter);
 
         // Save the preferences
         SharedPreferences.Editor editor = getPreferences(MODE_PRIVATE).edit();
@@ -709,7 +712,7 @@ public class HeartNotesActivity extends ListActivity implements IConstants {
     private static class Data {
         private long id;
         private String comment;
-        private long dateNum = -1;
+        private long dateNum;
         private int count;
         private int total;
 
@@ -784,7 +787,7 @@ public class HeartNotesActivity extends ListActivity implements IConstants {
                         if (indexComment > -1) {
                             comment = cursor.getString(indexComment);
                         }
-                        Long dateNum = -1L;
+                        long dateNum = -1L;
                         if (indexDate > -1) {
                             dateNum = cursor.getLong(indexDate);
                         }

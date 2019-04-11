@@ -12,6 +12,7 @@ import android.content.DialogInterface.OnCancelListener;
 import android.database.Cursor;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
 import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.view.Menu;
@@ -24,7 +25,7 @@ import android.widget.EditText;
 /**
  * Manages editing a set of data. Done similarly to the Notes example.
  */
-public class DataEditActivity extends Activity implements IConstants {
+public class DataEditActivity extends AppCompatActivity implements IConstants {
     private HeartNotesrDbAdapter mDbAdapter;
     private EditText mCountText;
     private EditText mTotalText;
@@ -56,11 +57,8 @@ public class DataEditActivity extends Activity implements IConstants {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        Log.v(TAG, this.getClass().getSimpleName() + ": onCreate");
         super.onCreate(savedInstanceState);
-
-        // Debug
-        Log.v(TAG, this.getClass().getSimpleName() + ": onCreate called");
-
         // The default state is cancelled and won't be changed until the users
         // selects one of the buttons
         state = State.CANCELLED;
@@ -180,8 +178,7 @@ public class DataEditActivity extends Activity implements IConstants {
 
     @Override
     protected void onPause() {
-        // Debug
-        Log.v(TAG, this.getClass().getSimpleName() + "onPause called");
+        Log.v(TAG, this.getClass().getSimpleName() + "onPause");
         super.onPause();
         // This gets called on every pause. Since the state is CANCELLED until a
         // button is tapped, it doesn't typically do anything here.
@@ -190,8 +187,7 @@ public class DataEditActivity extends Activity implements IConstants {
 
     @Override
     protected void onResume() {
-        // DEBUG
-        Log.v(TAG, this.getClass().getSimpleName() + "onResume called");
+        Log.v(TAG, this.getClass().getSimpleName() + "onResume");
         super.onResume();
     }
 
