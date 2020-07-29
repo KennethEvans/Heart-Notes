@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Heart Notes</string>
-    <string name="Filter_item">Filter</string>
+    <string name="filter_item">Filter</string>
+    <string name="sort_order_item">Sort Order</string>
+    <string name="set_key_item">Set OpenWeather Key</string>
     <string name="new_item">New</string>
     <string name="refresh_item">Refresh</string>
     <string name="restore_item">Restore</string>

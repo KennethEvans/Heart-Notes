@@ -1,12 +1,12 @@
 apply plugin: 'com.android.application'
 android {
-    compileSdkVersion 28
+    compileSdkVersion 30
     defaultConfig {
         applicationId "net.kenevans.heartnotes"
         minSdkVersion 15
-        targetSdkVersion 28
-        versionCode 11
-        versionName '4.2.0'
+        targetSdkVersion 30
+        versionCode 12
+        versionName '4.3.0'
     }
     buildTypes {
         release {
@@ -27,5 +27,5 @@ android {
 
 dependencies {
     implementation 'androidx.legacy:legacy-support-v4:1.0.0'
-    implementation 'androidx.appcompat:appcompat:1.0.2'
+    implementation 'androidx.appcompat:appcompat:1.1.0'
 }

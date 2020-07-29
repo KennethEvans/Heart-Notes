@@ -42,8 +42,9 @@ public interface IConstants {
     /**
      * Simple name of the database.
      */
-    String DB_NAME = "HeartNotes.db";    /**
+    String DB_NAME = "HeartNotes.db";
     /**
+     * /**
      * Simple name of the table.
      */
     String DB_TABLE = "data";
@@ -54,6 +55,9 @@ public interface IConstants {
 
     // Preferences
     String PREF_DATA_DIRECTORY = "dataDirectory";
+    String PREF_OPENWEATHER_KEY = "openWeatherKey";
+    String PREF_FILTER = "filter";
+    String PREF_SORT_ORDER = "sortOrder";
 
     // Information
     /**
@@ -96,6 +100,11 @@ public interface IConstants {
      */
     String SORT_ASCENDING = COL_DATE + " ASC";
 
+    /**
+     * SQL sort command for date descending
+     */
+    String SORT_DESCENDING = COL_DATE + " DESC";
+
     // Messages
     /**
      * Request code for creating new data.
@@ -126,4 +135,12 @@ public interface IConstants {
     SimpleDateFormat shortFormatter = new SimpleDateFormat(
             "M/d/yy h:mm a", Locale.US);
 
+    /**
+     * The API string for OpenWeather.
+     */
+    String OPEN_WEATHER_MAP_API =
+            "https://api.openweathermap.org/data/2.5/onecall" +
+                    "?lat={%f}&lon={%f}&units=imperial" +
+                    "&exclude={exclude=hourly,daily,minutely}" +
+                    "&appid={%s}";
 }

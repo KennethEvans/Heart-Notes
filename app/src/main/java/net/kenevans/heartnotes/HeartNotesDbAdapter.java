@@ -19,7 +19,7 @@ import android.util.Log;
  * of using a collection of inner classes (which is less scalable and not
  * recommended).
  */
-public class HeartNotesrDbAdapter implements IConstants {
+public class HeartNotesDbAdapter implements IConstants {
     private DatabaseHelper mDbHelper;
     private SQLiteDatabase mDb;
     private final Context mCtx;
@@ -42,7 +42,7 @@ public class HeartNotesrDbAdapter implements IConstants {
      * @param ctx     The context.
      * @param dataDir The location of the data.
      */
-    public HeartNotesrDbAdapter(Context ctx, File dataDir) {
+    public HeartNotesDbAdapter(Context ctx, File dataDir) {
         mCtx = ctx;
         mDataDir = dataDir;
     }
@@ -56,7 +56,7 @@ public class HeartNotesrDbAdapter implements IConstants {
      * initialization call)
      * @throws SQLException if the database could be neither opened or created
      */
-    public HeartNotesrDbAdapter open() throws SQLException {
+    public HeartNotesDbAdapter open() throws SQLException {
         // Make sure the directory exists and is available
         if (mDataDir == null) {
             Utils.errMsg(mCtx, "Cannot access database");
@@ -144,14 +144,14 @@ public class HeartNotesrDbAdapter implements IConstants {
      *
      * @return Cursor over all notes
      */
-    public Cursor fetchAllData(String filter) {
+    public Cursor fetchAllData(String filter, String sortOrder) {
         if (mDb == null) {
             return null;
         }
         return mDb.query(DB_TABLE, new String[]{COL_ID, COL_DATE,
                         COL_DATEMOD, COL_COUNT, COL_TOTAL, COL_EDITED,
                         COL_COMMENT},
-                filter, null, null, null, SORT_ASCENDING);
+                filter, null, null, null, sortOrder);
     }
 
     /**

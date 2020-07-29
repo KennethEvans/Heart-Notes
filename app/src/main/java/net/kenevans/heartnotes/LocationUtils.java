@@ -21,21 +21,31 @@
 
 package net.kenevans.heartnotes;
 
+import android.Manifest;
 import android.content.Context;
+import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationManager;
+import android.preference.PreferenceManager;
 import android.util.Log;
+
+import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import androidx.core.app.ActivityCompat;
 
 /**
  * A class to provide location as well as location-based address and weather
@@ -44,25 +54,11 @@ import java.util.regex.Pattern;
 public class LocationUtils implements IConstants {
     private static final String WUND_URL_PREFIX = "http://m.wund" +
             ".com/cgi-bin/findweather/getForecast?query=";
-
-    /**
-     * Gets the weather using Weather Underground.
-     *
-     * @param context The context.
-     * @return String[3] as {temperature, humidity, city} or null on failure.
-     */
-    public static String[] getWundWeather(Context context) {
-        Log.d(TAG, "LocationUtils " + ".getTempHumidityFromLocation: ");
-        Location location = findLocation(context);
-        if (location == null) {
-            Log.d(TAG, "  location=null");
-            return new String[]{"Location NA", "Location NA", "Location NA"};
-        }
-        Log.d(TAG,
-                "  location=" + location.getLatitude() + ","
-                        + location.getLongitude());
-        return getWundTemperatureHumidityFromLocation(location);
-    }
+    private static final String OPEN_WEATHER_MAP_API =
+            "https://api.openweathermap.org/data/2.5/onecall" +
+                    "?lat=%f&lon=%f&units=imperial" +
+                    "&exclude=exclude=hourly,daily,minutely" +
+                    "&appid=%s";
 
     /**
      * Gets the current location first trying GPS then Network.
@@ -76,6 +72,14 @@ public class LocationUtils implements IConstants {
                 .getSystemService(Context.LOCATION_SERVICE);
         String gpsProvider = LocationManager.GPS_PROVIDER;
         String networkProvider = LocationManager.NETWORK_PROVIDER;
+        if (ActivityCompat.checkSelfPermission(context,
+                Manifest.permission.ACCESS_FINE_LOCATION) !=
+                PackageManager.PERMISSION_GRANTED &&
+                ActivityCompat.checkSelfPermission(context,
+                        Manifest.permission.ACCESS_COARSE_LOCATION) !=
+                        PackageManager.PERMISSION_GRANTED) {
+            return null;
+        }
         location = locationManager.getLastKnownLocation(gpsProvider);
         if (location == null) {
             location = locationManager.getLastKnownLocation(networkProvider);
@@ -84,7 +88,9 @@ public class LocationUtils implements IConstants {
     }
 
     /**
-     * Finds an address from the given latitude and longitude.
+     * Finds an address from the given latitude and longitude.  Needs a
+     * project with a billing account and the Geocoding API enabled.
+     * See https://developers.google.com/maps/gmp-get-started.
      *
      * @param context The context.
      * @param lat     The latitude.
@@ -112,6 +118,147 @@ public class LocationUtils implements IConstants {
             // Do nothing
         }
         return address;
+    }
+
+    /**
+     * Gets a weather String for OpenWeatherMap.
+     *
+     * @param context The context.
+     * @return The weather String.
+     */
+    public static String getOpenWeather(Context context) {
+        Log.d(TAG, "LocationUtils " + ".getOpenWeather: ");
+        if (ActivityCompat.checkSelfPermission(context,
+                Manifest.permission.ACCESS_FINE_LOCATION) !=
+                PackageManager.PERMISSION_GRANTED &&
+                ActivityCompat.checkSelfPermission(context,
+                        Manifest.permission.ACCESS_COARSE_LOCATION) !=
+                        PackageManager.PERMISSION_GRANTED) {
+            return null;
+        }
+        // Get the location
+        Location location = findLocation(context);
+        if (location == null) {
+            Log.d(TAG, "  location=null");
+            return "Failed to find location for weather.";
+        }
+        Log.d(TAG,
+                "  location=" + location.getLatitude() + ","
+                        + location.getLongitude());
+        // Get the OpenWeather key
+        SharedPreferences prefs = PreferenceManager
+                .getDefaultSharedPreferences
+                        (context);
+        String key = prefs.getString(PREF_OPENWEATHER_KEY, null);
+        if (key == null || key.isEmpty()) {
+            Log.d(TAG, "  no key");
+            return "No OpenWeather Key found.";
+        }
+
+        try {
+            URL url = new URL(String.format(Locale.US, OPEN_WEATHER_MAP_API,
+                    location.getLatitude(), location.getLongitude(), key));
+            Log.d(TAG, "  url=" + url.getFile());
+            HttpURLConnection connection =
+                    (HttpURLConnection) url.openConnection();
+            int responseCode = connection.getResponseCode();
+            if (responseCode != 200) {
+                Log.d(TAG, "  response code not 200");
+                return "Get weather failed: responseCode=" + responseCode + ".";
+            }
+
+            BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(connection.getInputStream()));
+            StringBuilder json = new StringBuilder(1024);
+            String line;
+            while ((line = reader.readLine()) != null)
+                json.append(line).append("\n");
+            reader.close();
+            JSONObject data = new JSONObject(json.toString());
+            return parseOpenWeather(data) + ".";
+        } catch (Exception ex) {
+            Log.d(TAG, "  exception");
+            return "Get weather failed: exception=" + ex + ".";
+        }
+    }
+
+    /**
+     * Parses the JSONObject from OpenWeatherMap.
+     *
+     * @param json The JSONObject to parse.
+     * @return The String generated from the JSONObject.
+     */
+    private static String parseOpenWeather(JSONObject json) {
+        String info = "";
+        JSONObject current;
+        String strVal;
+        double val;
+        try {
+            current = json.getJSONObject("current");
+        } catch (Exception ex) {
+            info += "Current weather not found";
+            return info;
+        }
+        boolean first = true;
+        try {
+            val = current.getDouble("temp");
+            strVal = String.format(Locale.US, "%.0f", val);
+            info += "temp=" + strVal + "°F";
+            first = false;
+        } catch (Exception ex) {
+        }
+        if (!first) info += " ";
+        try {
+            val = current.getDouble("feels_like");
+            strVal = String.format(Locale.US, "%.0f", val);
+            info += "(feels like " + strVal + "°F)";
+        } catch (Exception ex) {
+        }
+        if (!first) info += " ";
+        try {
+            strVal = current.getString("humidity");
+            info += "humidity=" + strVal + "%";
+        } catch (Exception ex) {
+        }
+        if (!first) info += " ";
+        try {
+            long timeval = 1000L * current.getLong("dt");
+            Date date = null;
+            if (timeval != 0) {
+                date = new Date(timeval);
+            }
+            info += "on " + date;
+        } catch (Exception ex) {
+        }
+        if (first) info += "No data found";
+        return info;
+    }
+
+    /**
+     * Gets the weather using Weather Underground. Not working in 2020.
+     *
+     * @param context The context.
+     * @return String[3] as {temperature, humidity, city} or null on failure.
+     */
+    public static String[] getWundWeather(Context context) {
+        Log.d(TAG, "LocationUtils " + ".getWundWeather: ");
+        if (ActivityCompat.checkSelfPermission(context,
+                Manifest.permission.ACCESS_FINE_LOCATION) !=
+                PackageManager.PERMISSION_GRANTED &&
+                ActivityCompat.checkSelfPermission(context,
+                        Manifest.permission.ACCESS_COARSE_LOCATION) !=
+                        PackageManager.PERMISSION_GRANTED) {
+            return null;
+        }
+        Location location = findLocation(context);
+        if (location == null) {
+            Log.d(TAG, "  location=null");
+            return null;
+        }
+        Log.d(TAG,
+                "  location=" + location.getLatitude() + ","
+                        + location.getLongitude());
+        return getWundTemperatureHumidityFromLocation(location);
     }
 
     /**

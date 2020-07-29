@@ -7,7 +7,6 @@ import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.os.Bundle;
 import android.os.Environment;
-import androidx.appcompat.app.AppCompatActivity;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -34,6 +33,8 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.Locale;
 
+import androidx.appcompat.app.AppCompatActivity;
+
 /**
  * Manages a database with entries for the number of Premature Ventricular
  * Contractions (PVCs) at a given time. The database implementation is similar
@@ -45,10 +46,12 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
      */
     private static final String sdCardFileNameTemplate = "HeartNotes.%s.txt";
 
-    private HeartNotesrDbAdapter mDbAdapter;
+    private HeartNotesDbAdapter mDbAdapter;
     private CustomListAdapter mListAdapter;
     private File mDataDir;
     private ListView mListView;
+    private String mSortOrder = SORT_DESCENDING;
+    private boolean mListViewToEnd = false;
 
     /**
      * Array of hard-coded filters
@@ -86,23 +89,24 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
 
         // Get the preferences here before refresh()
         SharedPreferences prefs = getPreferences(MODE_PRIVATE);
-        mFilter = prefs.getInt("mFilter", 0);
+        mFilter = prefs.getInt(PREF_FILTER, 0);
         if (mFilter < 0 || mFilter >= filters.length) {
             mFilter = 0;
         }
+        mSortOrder = prefs.getString(PREF_SORT_ORDER, SORT_DESCENDING);
 
         // Open the database
         mDataDir = getDataDirectory();
         if (mDataDir == null) {
             return;
         }
-        mDbAdapter = new HeartNotesrDbAdapter(this, mDataDir);
+        mDbAdapter = new HeartNotesDbAdapter(this, mDataDir);
         mDbAdapter.open();
 
         refresh();
 
         // Position it to the end
-        positionListView(true);
+        positionListView(mListViewToEnd);
 
     }
 
@@ -153,16 +157,24 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
                 save();
                 return true;
             case R.id.toend:
-                positionListView(true);
+                mListViewToEnd = true;
+                positionListView(mListViewToEnd);
                 return true;
             case R.id.tostart:
-                positionListView(false);
+                mListViewToEnd = false;
+                positionListView(mListViewToEnd);
                 return true;
             case R.id.filter:
                 setFilter();
                 return true;
+            case R.id.sortOrder:
+                setSortOrder();
+                return true;
             case R.id.restore:
                 checkRestore();
+                return true;
+            case R.id.setopenweatherkey:
+                setOpenWeatherKey();
                 return true;
             case R.id.setdatadirectory:
                 setDataDirectory();
@@ -312,7 +324,7 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
                     mDbAdapter.close();
                 }
                 try {
-                    mDbAdapter = new HeartNotesrDbAdapter(
+                    mDbAdapter = new HeartNotesDbAdapter(
                             HeartNotesActivity.this, mDataDir);
                     mDbAdapter.open();
                 } catch (Exception ex) {
@@ -320,6 +332,43 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
                             "Error opening database at " + mDataDir, ex);
                 }
                 refresh();
+            }
+        });
+
+        alert.setNegativeButton("Cancel",
+                new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int
+                            whichButton) {
+                        // Do nothing
+                    }
+                });
+
+        alert.show();
+    }
+
+    /**
+     * Sets the OpenWeather key.
+     */
+    private void setOpenWeatherKey() {
+        AlertDialog.Builder alert = new AlertDialog.Builder(this);
+        alert.setTitle("Set OpenWeather Key");
+
+        // Set an EditText view to get user input
+        final EditText input = new EditText(this);
+        // Set it with the current value
+        SharedPreferences prefs = getPreferences(MODE_PRIVATE);
+        String keyName = prefs.getString(PREF_OPENWEATHER_KEY, null);
+        if (keyName != null) {
+            input.setText(keyName);
+        }
+        alert.setView(input);
+        alert.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int whichButton) {
+                String value = input.getText().toString();
+                SharedPreferences.Editor editor = getPreferences(MODE_PRIVATE)
+                        .edit();
+                editor.putString(PREF_OPENWEATHER_KEY, value);
+                editor.apply();
             }
         });
 
@@ -437,7 +486,8 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
             File file = new File(mDataDir, fileName);
             FileWriter writer = new FileWriter(file);
             out = new BufferedWriter(writer);
-            cursor = mDbAdapter.fetchAllData(filters[mFilter].selection);
+            cursor = mDbAdapter.fetchAllData(filters[mFilter].selection,
+                    mSortOrder);
             // int indexId = cursor.getColumnIndex(COL_ID);
             int indexDate = cursor.getColumnIndex(COL_DATE);
             // int indexDateMod = cursor.getColumnIndex(COL_DATEMOD);
@@ -626,8 +676,11 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
                 date = HeartNotesActivity.longFormatter.parse(tokens[1]
                         .trim());
                 comment = tokens[2];
-                long id = mDbAdapter.createData(date.getTime(), dateMod, count,
-                        total, true, comment);
+                long id = -1;
+                if (date != null) {
+                    id = mDbAdapter.createData(date.getTime(), dateMod, count,
+                            total, true, comment);
+                }
                 if (id < 0) {
                     Utils.errMsg(this, "Failed to create the entry for line "
                             + lineNum);
@@ -672,6 +725,40 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
                         } else {
                             mFilter = item;
                         }
+                        SharedPreferences.Editor editor =
+                                getPreferences(MODE_PRIVATE).edit();
+                        editor.putInt(PREF_FILTER, mFilter);
+                        editor.apply();
+                        refresh();
+                    }
+                });
+        AlertDialog alert = builder.create();
+        alert.show();
+    }
+
+    /**
+     * Bring up a dialog to change the sort order.
+     */
+    private void setSortOrder() {
+        final CharSequence[] items = new CharSequence[2];
+        items[0] = "Ascending";
+        items[1] = "Descending";
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(getText(R.string.sort_order_item));
+        builder.setSingleChoiceItems(items,
+                mSortOrder.equals(SORT_ASCENDING) ? 0 : 1,
+                new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int item) {
+                        dialog.dismiss();
+                        if (item == 0) {
+                            mSortOrder = SORT_ASCENDING;
+                        } else {
+                            mSortOrder = SORT_DESCENDING;
+                        }
+                        SharedPreferences.Editor editor =
+                                getPreferences(MODE_PRIVATE).edit();
+                        editor.putString(PREF_SORT_ORDER, mSortOrder);
+                        editor.apply();
                         refresh();
                     }
                 });
@@ -686,11 +773,7 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
         // Initialize the list view mAapter
         mListAdapter = new CustomListAdapter();
         mListView.setAdapter(mListAdapter);
-
-        // Save the preferences
-        SharedPreferences.Editor editor = getPreferences(MODE_PRIVATE).edit();
-        editor.putInt("mFilter", mFilter);
-        editor.apply();
+        positionListView(mListViewToEnd);
     }
 
     /**
@@ -769,7 +852,7 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
             try {
                 if (mDbAdapter != null) {
                     cursor = mDbAdapter.fetchAllData(filters[mFilter]
-                            .selection);
+                            .selection, mSortOrder);
                     indexId = cursor.getColumnIndex(COL_ID);
                     indexDate = cursor.getColumnIndex(COL_DATE);
                     // indexDateMod = cursor.getColumnIndex(COL_DATEMOD);

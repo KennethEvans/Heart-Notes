@@ -1,15 +1,12 @@
 package net.kenevans.heartnotes;
 
-import java.io.File;
-import java.text.ParseException;
-import java.util.Date;
-
+import android.Manifest;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import androidx.appcompat.app.AppCompatActivity;
 import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.view.Menu;
@@ -19,11 +16,24 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 
+import java.io.File;
+import java.text.ParseException;
+import java.util.Date;
+
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+
 /**
  * Manages editing a set of data. Done similarly to the Notes example.
  */
 public class DataEditActivity extends AppCompatActivity implements IConstants {
-    private HeartNotesrDbAdapter mDbAdapter;
+    /**
+     * Request code for ACCESS_FINE_LOCATION.
+     */
+    private static final int ACCESS_LOCATION_REQ = 1;
+
+    private HeartNotesDbAdapter mDbAdapter;
     private EditText mCountText;
     private EditText mTotalText;
     private EditText mDateText;
@@ -50,7 +60,7 @@ public class DataEditActivity extends AppCompatActivity implements IConstants {
     /**
      * Task for getting the temperature from the web
      */
-    private GetWeatherTask updateTask;
+    private static GetWeatherTask updateTask;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -90,7 +100,7 @@ public class DataEditActivity extends AppCompatActivity implements IConstants {
             }
         }
 
-        mDbAdapter = new HeartNotesrDbAdapter(this, mDataDir);
+        mDbAdapter = new HeartNotesDbAdapter(this, mDataDir);
         mDbAdapter.open();
 
         // Save
@@ -167,7 +177,7 @@ public class DataEditActivity extends AppCompatActivity implements IConstants {
     // This was used in the notes example. It only applies to kill, not
     // onResume.
     @Override
-    protected void onSaveInstanceState(Bundle outState) {
+    protected void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
         saveState();
         outState.putSerializable(COL_ID, mRowId);
@@ -206,20 +216,54 @@ public class DataEditActivity extends AppCompatActivity implements IConstants {
         return false;
     }
 
+    @Override
+    // This currently should not be called as not using requestPermission
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[]
+            permissions, @NonNull int[] grantResults) {
+        Log.d(TAG, this.getClass().getSimpleName() + ": " +
+                "onRequestPermissionsResult:" + " permissions=" +
+                permissions[0]);
+        Log.d(TAG, "    requestCode=" + requestCode
+                + " ACCESS_LOCATION_REQ="
+                + ACCESS_LOCATION_REQ
+        );
+        switch (requestCode) {
+            case ACCESS_LOCATION_REQ:
+                if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    Log.d(TAG, "ACCESS_LOCATION granted");
+                } else if (grantResults[0] == PackageManager.PERMISSION_DENIED) {
+                    Log.d(TAG, "WRITE_EXTERNAL_STORAGE denied");
+                }
+                break;
+        }
+    }
+
     /**
      * Starts a GetWeatherTask.
      *
      * @see GetWeatherTask
      */
-
     private void insertWeather() {
+        Log.d(TAG, this.getClass().getSimpleName()
+                + ": updateTask=" + updateTask);
         if (updateTask != null) {
             // Don't do anything if we are updating
             Log.d(TAG, this.getClass().getSimpleName()
-                    + ": getStrip: updateTask is not null");
+                    + ": insertWeather: updateTask is not null");
             return;
         }
-        updateTask = new GetWeatherTask();
+        if (ActivityCompat.checkSelfPermission(this,
+                Manifest.permission.ACCESS_FINE_LOCATION) !=
+                PackageManager.PERMISSION_GRANTED &&
+                ActivityCompat.checkSelfPermission(this,
+                        Manifest.permission.ACCESS_FINE_LOCATION) !=
+                        PackageManager.PERMISSION_GRANTED) {
+            Log.d(TAG, "Location not granted: Request location permission");
+            Utils.errMsg(this, "Insert Weather requires Location permission");
+            return;
+        }
+        Log.d(TAG, "Location granted: start WeatherTask");
+        updateTask = new GetWeatherTask(this);
         updateTask.execute();
     }
 
@@ -262,7 +306,11 @@ public class DataEditActivity extends AppCompatActivity implements IConstants {
                 Utils.excMsg(this, "Cannot parse the date", ex);
                 return;
             }
-            date = testDate.getTime();
+            if (testDate != null) {
+                date = testDate.getTime();
+            } else {
+                date = 0L;
+            }
         } catch (Exception ex) {
             Utils.excMsg(this, "Failed to parse the entered values", ex);
             return;
@@ -316,12 +364,14 @@ public class DataEditActivity extends AppCompatActivity implements IConstants {
     /**
      * An AsyncTask to get the weather from the web.
      */
-    private class GetWeatherTask extends AsyncTask<Void, Void, Boolean> {
-        private String[] vals;
+    private static class GetWeatherTask extends AsyncTask<Void, Void, Boolean> {
+        private String weatherString;
+        private DataEditActivity activity;
 
-        // public GetWeatherTask() {
-        // super();
-        // }
+        public GetWeatherTask(DataEditActivity activity) {
+            super();
+            this.activity = activity;
+        }
 
         @Override
         protected Boolean doInBackground(Void... dummy) {
@@ -334,7 +384,9 @@ public class DataEditActivity extends AppCompatActivity implements IConstants {
 
             // vals = GoogleLocationUtils
             // .getGoogleWeather(DataEditActivity.this);
-            vals = LocationUtils.getWundWeather(DataEditActivity.this);
+            // vals = LocationUtils.getWundWeather(DataEditActivity.this);
+            weatherString =
+                    LocationUtils.getOpenWeather(activity);
             return true;
         }
 
@@ -350,13 +402,16 @@ public class DataEditActivity extends AppCompatActivity implements IConstants {
             // return;
             // }
             updateTask = null;
-            if (vals == null) {
-                Utils.errMsg(DataEditActivity.this, "Failed to get weather");
-                mCommentText.append("Weather NA.");
+            if (weatherString == null) {
+                Utils.errMsg(activity, "Failed to get weather");
+                if(activity != null) {
+                    activity.mCommentText.append("Weather NA.");
+                }
                 return;
             }
-            mCommentText.append("Temp " + vals[0] + " Humidity " + vals[1]
-                    + " " + "(" + vals[2] + ")");
+            if(activity != null) {
+                activity.mCommentText.append(weatherString);
+            }
         }
     }
 }

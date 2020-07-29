@@ -22,24 +22,28 @@
 <p>Start a new note. Brings up a screen where you can view all the parameters, set the settable data, and compose the note. </p>
 <h4>Filter</h4>
 <p>You can filter the notes by <em>None</em>, <em>Count is not Zero</em>, and <em>Count equals Total</em>. Setting the count to be the same as total can be treated as denoting a more serious arrhythmia than missing beats. </p>
-<h4>Save as Text</h4>
-<p>Save the database as a text file. The file will be created in the directory with the database (which can be specified, see below). The name is of the form Heart Notes-yyyy-MM-dd-HHmmss.txt, and the values correspond to the time it is saved. The file is intended to be formatted so it can be viewed and printed without editing. The lines are of the form:</p>
-<pre>2/60 	Jun 03, 2012 23:00:00 -0500 	After working out.</pre>
+<h4>Sort Order</h4>
+<p>You can sort ascending or descending in time.  </p>
 <h4>Beginning</h4>
 <p>Moves to the beginning of the list. </p>
 <h4>End</h4>
 <p>Moves to the end of the list. </p>
 <h4>Refresh</h4>
 <p>Recreates the list from the database. </p>
+<h4>Save as Text</h4>
+<p>Saves the database as a text file. The file will be created in the directory with the database (which can be specified, see below). The name is of the form Heart Notes-yyyy-MM-dd-HHmmss.txt, and the values correspond to the time it is saved. The file is intended to be formatted so it can be viewed and printed without editing. The lines are of the form:</p>
+<pre>2/60 	Jun 03, 2012 23:00:00 -0500 	After working out.</pre>
 <h4>Restore</h4>
 <p>Restores the database from one of the saved text files. Since the editing information is not saved, it will be set to the date the database was restored. </p>
+<h4>Set OpenWeather Key </h4>
+<p>HeartNotes can get the current weather from <a href="https://openweathermap.org/">OpenWeather</a> and insert it in a note. To do this you need to register and get a key. (It is free.) This is where you set the key. </p>
 <h4>Set Data Directory</h4>
 <p>You can set the directory where the database is located and where text files are saved. This must be a directory that is writtable by the app, so it probably should not be on the external SD card. You can use this to switch to different directories with different data, if you like. </p>
 <h4>Help</h4>
 <p>Displays this page.</p>
 <h3 align="left"><a name="editscreen" id="editscreen"></a>Edit Screen Menu Items </h3>
 <h4>Insert Weather</h4>
-<p>Allows you to insert the weather, if it can be found. It uses <a href="http://m.wund.com">Weather Underground</a>. </p>
+<p>Allows you to insert the weather, if it can be found. It uses <a href="https://openweathermap.org/">OpenWeather</a>.  To do this you need to register and get a key. (It is free.)</p>
 <p>&nbsp;</p>
 </body>
 </html>
