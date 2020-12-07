@@ -1,13 +1,13 @@
 package net.kenevans.heartnotes;
 
-import java.io.File;
-
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.util.Log;
+
+import java.io.File;
 
 /**
  * Simple database access helper class. Defines the basic CRUD operations for
@@ -23,7 +23,6 @@ public class HeartNotesDbAdapter implements IConstants {
     private DatabaseHelper mDbHelper;
     private SQLiteDatabase mDb;
     private final Context mCtx;
-    private File mDataDir;
 
     /**
      * Database creation SQL statement
@@ -40,11 +39,9 @@ public class HeartNotesDbAdapter implements IConstants {
      * opened/created
      *
      * @param ctx     The context.
-     * @param dataDir The location of the data.
      */
-    public HeartNotesDbAdapter(Context ctx, File dataDir) {
+    public HeartNotesDbAdapter(Context ctx) {
         mCtx = ctx;
-        mDataDir = dataDir;
     }
 
     /**
@@ -58,30 +55,27 @@ public class HeartNotesDbAdapter implements IConstants {
      */
     public HeartNotesDbAdapter open() throws SQLException {
         // Make sure the directory exists and is available
-        if (mDataDir == null) {
-            Utils.errMsg(mCtx, "Cannot access database");
-            return null;
-        }
+        File dataDir = mCtx.getExternalFilesDir(null);
         try {
-            if (!mDataDir.exists()) {
-                boolean res = mDataDir.mkdirs();
+            if (!dataDir.exists()) {
+                boolean res = dataDir.mkdirs();
                 if (!res) {
                     Utils.errMsg(mCtx,
-                            "Creating directory failed\n" + mDataDir);
+                            "Creating directory failed\n" + dataDir);
                     return null;
                 }
                 // Try again
-                if (!mDataDir.exists()) {
+                if (!dataDir.exists()) {
                     Utils.errMsg(mCtx,
                             "Unable to create database directory at "
-                                    + mDataDir);
+                                    + dataDir);
                     return null;
                 }
             }
-            mDbHelper = new DatabaseHelper(mDataDir.getPath());
+            mDbHelper = new DatabaseHelper(dataDir.getPath());
             mDb = mDbHelper.getWritableDatabase();
         } catch (Exception ex) {
-            Utils.excMsg(mCtx, "Error opening database at " + mDataDir, ex);
+            Utils.excMsg(mCtx, "Error opening database at " + dataDir, ex);
         }
         return this;
     }

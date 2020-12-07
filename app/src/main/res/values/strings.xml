@@ -9,6 +9,7 @@
     <string name="restore_item">Restore</string>
     <string name="set_data_directory_item">Set Data Directory</string>
     <string name="save_item">Save as Text</string>
+    <string name="save_db">Save Database</string>
     <string name="save">Save</string>
     <string name="tostart_item">Beginning</string>
     <string name="toend_item">End</string>

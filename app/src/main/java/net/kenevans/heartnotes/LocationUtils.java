@@ -146,9 +146,8 @@ public class LocationUtils implements IConstants {
                 "  location=" + location.getLatitude() + ","
                         + location.getLongitude());
         // Get the OpenWeather key
-        SharedPreferences prefs = PreferenceManager
-                .getDefaultSharedPreferences
-                        (context);
+        SharedPreferences prefs = context.getSharedPreferences(
+                "HeartNotesActivity", Context.MODE_PRIVATE);
         String key = prefs.getString(PREF_OPENWEATHER_KEY, null);
         if (key == null || key.isEmpty()) {
             Log.d(TAG, "  no key");
@@ -338,7 +337,7 @@ public class LocationUtils implements IConstants {
                 regex = "(.*),";
                 pattern = Pattern.compile(regex);
                 matcher = pattern.matcher(city);
-                if (matcher.find()) {
+                if (matcher.find() && city != null) {
                     city = matcher.group(1);
                 }
             }

@@ -16,7 +16,6 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 
-import java.io.File;
 import java.text.ParseException;
 import java.util.Date;
 
@@ -41,7 +40,6 @@ public class DataEditActivity extends AppCompatActivity implements IConstants {
     private EditText mEditedText;
     private EditText mCommentText;
     private Long mRowId;
-    private File mDataDir;
 
     /**
      * Possible values for the edit state.
@@ -91,16 +89,8 @@ public class DataEditActivity extends AppCompatActivity implements IConstants {
                 mRowId = null;
             }
         }
-        if (mDataDir == null) {
-            Bundle extras = getIntent().getExtras();
-            String dataDirName = extras != null ? extras
-                    .getString(PREF_DATA_DIRECTORY) : null;
-            if (dataDirName != null) {
-                mDataDir = new File(dataDirName);
-            }
-        }
 
-        mDbAdapter = new HeartNotesDbAdapter(this, mDataDir);
+        mDbAdapter = new HeartNotesDbAdapter(this);
         mDbAdapter.open();
 
         // Save
@@ -208,10 +198,9 @@ public class DataEditActivity extends AppCompatActivity implements IConstants {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
-        switch (id) {
-            case R.id.weather:
-                insertWeather();
-                return true;
+        if (id == R.id.weather) {
+            insertWeather();
+            return true;
         }
         return false;
     }
@@ -227,14 +216,12 @@ public class DataEditActivity extends AppCompatActivity implements IConstants {
                 + " ACCESS_LOCATION_REQ="
                 + ACCESS_LOCATION_REQ
         );
-        switch (requestCode) {
-            case ACCESS_LOCATION_REQ:
-                if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    Log.d(TAG, "ACCESS_LOCATION granted");
-                } else if (grantResults[0] == PackageManager.PERMISSION_DENIED) {
-                    Log.d(TAG, "WRITE_EXTERNAL_STORAGE denied");
-                }
-                break;
+        if (requestCode == ACCESS_LOCATION_REQ) {
+            if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                Log.d(TAG, "ACCESS_LOCATION granted");
+            } else if (grantResults[0] == PackageManager.PERMISSION_DENIED) {
+                Log.d(TAG, "WRITE_EXTERNAL_STORAGE denied");
+            }
         }
     }
 
@@ -381,10 +368,6 @@ public class DataEditActivity extends AppCompatActivity implements IConstants {
 
             // Up the priority
             Thread.currentThread().setPriority(Thread.MAX_PRIORITY);
-
-            // vals = GoogleLocationUtils
-            // .getGoogleWeather(DataEditActivity.this);
-            // vals = LocationUtils.getWundWeather(DataEditActivity.this);
             weatherString =
                     LocationUtils.getOpenWeather(activity);
             return true;
@@ -404,12 +387,12 @@ public class DataEditActivity extends AppCompatActivity implements IConstants {
             updateTask = null;
             if (weatherString == null) {
                 Utils.errMsg(activity, "Failed to get weather");
-                if(activity != null) {
+                if (activity != null) {
                     activity.mCommentText.append("Weather NA.");
                 }
                 return;
             }
-            if(activity != null) {
+            if (activity != null) {
                 activity.mCommentText.append(weatherString);
             }
         }

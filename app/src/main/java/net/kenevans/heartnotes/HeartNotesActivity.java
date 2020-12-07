@@ -1,12 +1,18 @@
 package net.kenevans.heartnotes;
 
+import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.ContentResolver;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.UriPermission;
 import android.database.Cursor;
+import android.net.Uri;
 import android.os.Bundle;
-import android.os.Environment;
+import android.os.ParcelFileDescriptor;
+import android.provider.DocumentsContract;
+import android.provider.OpenableColumns;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -23,14 +29,17 @@ import android.widget.TextView;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileFilter;
-import java.io.FileReader;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -44,7 +53,8 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
     /**
      * Template for the name of the file written to the SD card
      */
-    private static final String sdCardFileNameTemplate = "HeartNotes.%s.txt";
+    private static final String saveFileTemplate = "HeartNotes.%s.txt";
+    private static final String saveDatabaseTemplate = "HeartNotes.%s.db";
 
     private HeartNotesDbAdapter mDbAdapter;
     private CustomListAdapter mListAdapter;
@@ -95,12 +105,7 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
         }
         mSortOrder = prefs.getString(PREF_SORT_ORDER, SORT_DESCENDING);
 
-        // Open the database
-        mDataDir = getDataDirectory();
-        if (mDataDir == null) {
-            return;
-        }
-        mDbAdapter = new HeartNotesDbAdapter(this, mDataDir);
+        mDbAdapter = new HeartNotesDbAdapter(this);
         mDbAdapter.open();
 
         refresh();
@@ -146,42 +151,44 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
-        switch (id) {
-            case R.id.refresh:
-                refresh();
-                return true;
-            case R.id.newdata:
-                createData();
-                return true;
-            case R.id.savetext:
-                save();
-                return true;
-            case R.id.toend:
-                mListViewToEnd = true;
-                positionListView(mListViewToEnd);
-                return true;
-            case R.id.tostart:
-                mListViewToEnd = false;
-                positionListView(mListViewToEnd);
-                return true;
-            case R.id.filter:
-                setFilter();
-                return true;
-            case R.id.sortOrder:
-                setSortOrder();
-                return true;
-            case R.id.restore:
-                checkRestore();
-                return true;
-            case R.id.setopenweatherkey:
-                setOpenWeatherKey();
-                return true;
-            case R.id.setdatadirectory:
-                setDataDirectory();
-                return true;
-            case R.id.help:
-                showHelp();
-                return true;
+        if (id == R.id.refresh) {
+            refresh();
+            return true;
+        } else if (id == R.id.newdata) {
+            createData();
+            return true;
+        } else if (id == R.id.savetext) {
+            save();
+            return true;
+        } else if (id == R.id.savedb) {
+            saveDatabase();
+            return true;
+        } else if (id == R.id.toend) {
+            mListViewToEnd = true;
+            positionListView(mListViewToEnd);
+            return true;
+        } else if (id == R.id.tostart) {
+            mListViewToEnd = false;
+            positionListView(mListViewToEnd);
+            return true;
+        } else if (id == R.id.filter) {
+            setFilter();
+            return true;
+        } else if (id == R.id.sortOrder) {
+            setSortOrder();
+            return true;
+        } else if (id == R.id.restore) {
+            checkRestore();
+            return true;
+        } else if (id == R.id.setopenweatherkey) {
+            setOpenWeatherKey();
+            return true;
+        } else if (id == R.id.setdatadirectory) {
+            setDataDirectory();
+            return true;
+        } else if (id == R.id.help) {
+            showHelp();
+            return true;
         }
         return false;
     }
@@ -195,155 +202,46 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
         final Data data = mListAdapter.getData(position);
         if (data == null) return;
         Log.d(TAG, "data: id=" + data.getId() + " " + data.getComment());
-        Intent i = new Intent(this, DataEditActivity.class);
+        Intent i = new Intent(this,
+                net.kenevans.heartnotes.DataEditActivity.class);
         i.putExtra(COL_ID, data.getId());
-        i.putExtra(PREF_DATA_DIRECTORY, mDataDir.getPath());
-        startActivityForResult(i, ACTIVITY_EDIT);
+        startActivityForResult(i, REQ_EDIT);
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode,
-                                    Intent intent) {
-        super.onActivityResult(requestCode, resultCode, intent);
-        // refresh should not be necessary. onResume will be called next
-        // and on Resume does not require refresh
-        // refresh();
-    }
-
-    // @Override
-    // public File getDatabasePath(String name) {
-    // File file = null;
-    // File sdCardRoot = Environment.getExternalStorageDirectory();
-    // if (sdCardRoot.canWrite()) {
-    // File dir = new File(sdCardRoot, SD_CARD_DB_DIRECTORY);
-    // file = new File(dir, name);
-    // }
-    // return file;
-    // }
-
-    /**
-     * Gets the current data directory
-     *
-     * @return The data directory.
-     */
-    public File getDataDirectory() {
-        SharedPreferences prefs = getPreferences(MODE_PRIVATE);
-        String dataDirName = prefs.getString(PREF_DATA_DIRECTORY, null);
-        File dataDir = null;
-        if (dataDirName != null) {
-            dataDir = new File(dataDirName);
-        } else {
-            File sdCardRoot = Environment.getExternalStorageDirectory();
-            if (sdCardRoot != null) {
-                dataDir = new File(sdCardRoot, SD_CARD_DB_DIRECTORY);
-                // Change the stored value (even if it is null)
+                                    Intent resultData) {
+        super.onActivityResult(requestCode, resultCode, resultData);
+        if (requestCode == REQ_GET_TREE) {
+            Uri treeUri;
+            if (resultCode == Activity.RESULT_OK) {
+                // Get Uri from Storage Access Framework.
+                treeUri = resultData.getData();
+                // Keep them from accumulating
+                releaseAllPermissions();
                 SharedPreferences.Editor editor = getPreferences(MODE_PRIVATE)
                         .edit();
-                editor.putString(PREF_DATA_DIRECTORY, dataDir.getPath());
+                editor.putString(PREF_TREE_URI, treeUri.toString());
                 editor.apply();
+
+                // Persist access permissions.
+                final int takeFlags = resultData.getFlags()
+                        & (Intent.FLAG_GRANT_READ_URI_PERMISSION |
+                        Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                this.getContentResolver().takePersistableUriPermission(treeUri, takeFlags);
             }
         }
-        if (dataDir == null) {
-            Utils.errMsg(this, "Data directory is null");
-        } else if (!dataDir.exists()) {
-            Utils.errMsg(this, "Cannot find directory: " + dataDir);
-            return null;
-        }
-        return dataDir;
     }
 
     /**
      * Sets the current data directory
      */
     private void setDataDirectory() {
-        AlertDialog.Builder alert = new AlertDialog.Builder(this);
-        alert.setTitle("Set Data Directory");
-        alert.setMessage("Data Directory (Leave blank for default):");
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION & Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+//        intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, uriToLoad);
 
-        // Set an EditText view to get user input
-        final EditText input = new EditText(this);
-        // Set it with the current value
-        SharedPreferences prefs = getPreferences(MODE_PRIVATE);
-        String imageDirName = prefs.getString(PREF_DATA_DIRECTORY, null);
-        if (imageDirName != null) {
-            input.setText(imageDirName);
-        }
-        alert.setView(input);
-
-        // DEBUG
-        // File file = this.getExternalFilesDir(null);
-        // Utils.infoMsg(this, "getExternalFilesDirectory:\n" + file.getPath());
-        // Debug 4.4.2
-        // File[] files = this.getExternalFilesDirs(null);
-        // String info = "";
-        // if (files == null) {
-        // info += "getExternalFilesDirs returned null\n\n";
-        // } else {
-        // info += "Number of getExternalFilesDirs=" + files.length + "\n\n";
-        // for (File file : files) {
-        // info += file.getPath() + "\n";
-        // }
-        // }
-        // info += "Current data directory:\n" + imageDirName + "\n";
-        // String path1 = files[1].getPath();
-        // if (imageDirName.equals(path1)) {
-        // info += "Same";
-        // } else {
-        // info += "Different";
-        // }
-        // Utils.infoMsg(this, info);
-
-        alert.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
-            public void onClick(DialogInterface dialog, int whichButton) {
-                String value = input.getText().toString();
-                File dataDir = null;
-                if (value.length() == 0) {
-                    File sdCardRoot = Environment.getExternalStorageDirectory();
-                    if (sdCardRoot != null) {
-                        dataDir = new File(sdCardRoot, SD_CARD_DB_DIRECTORY);
-                    }
-                } else {
-                    dataDir = new File(value);
-                }
-                if (dataDir == null) {
-                    Utils.errMsg(HeartNotesActivity.this,
-                            "Directory is null\n");
-                    return;
-                }
-                mDataDir = dataDir;
-                SharedPreferences.Editor editor = getPreferences(MODE_PRIVATE)
-                        .edit();
-                editor.putString(PREF_DATA_DIRECTORY, mDataDir.getPath());
-                editor.apply();
-                if (!dataDir.exists()) {
-                    Utils.errMsg(HeartNotesActivity.this,
-                            "Directory does not exist:\n" + dataDir.getPath());
-                    return;
-                }
-                if (mDbAdapter != null) {
-                    mDbAdapter.close();
-                }
-                try {
-                    mDbAdapter = new HeartNotesDbAdapter(
-                            HeartNotesActivity.this, mDataDir);
-                    mDbAdapter.open();
-                } catch (Exception ex) {
-                    Utils.excMsg(HeartNotesActivity.this,
-                            "Error opening database at " + mDataDir, ex);
-                }
-                refresh();
-            }
-        });
-
-        alert.setNegativeButton("Cancel",
-                new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int
-                            whichButton) {
-                        // Do nothing
-                    }
-                });
-
-        alert.show();
+        startActivityForResult(intent, REQ_GET_TREE);
     }
 
     /**
@@ -384,11 +282,11 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
     }
 
     private void createData() {
-        Intent i = new Intent(this, DataEditActivity.class);
-        i.putExtra(PREF_DATA_DIRECTORY, mDataDir.getPath());
+        Intent i = new Intent(this,
+                net.kenevans.heartnotes.DataEditActivity.class);
         // Use -1 for the COL_ID to indicate it is new
         i.putExtra(COL_ID, -1L);
-        startActivityForResult(i, ACTIVITY_CREATE);
+        startActivityForResult(i, REQ_CREATE);
         // Date date = new Date();
         // Date dateMod = date;
         // int count = (int) Math.round(Math.random() * 60);
@@ -471,20 +369,35 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
      * Saves the info to the SD card.
      */
     private void save() {
+        SharedPreferences prefs = getPreferences(MODE_PRIVATE);
+        String treeUriStr = prefs.getString(PREF_TREE_URI, null);
+        if (treeUriStr == null) {
+            Utils.errMsg(this, "There is no data directory set");
+            return;
+        }
+        FileWriter writer = null;
         BufferedWriter out = null;
         Cursor cursor = null;
         try {
-            if (mDataDir == null) {
-                Utils.errMsg(this, "Error saving to SD card");
-                return;
-            }
             String format = "yyyy-MM-dd-HHmmss";
             SimpleDateFormat df = new SimpleDateFormat(format, Locale.US);
             Date now = new Date();
-            String fileName = String.format(sdCardFileNameTemplate,
+            String fileName = String.format(saveFileTemplate,
                     df.format(now));
-            File file = new File(mDataDir, fileName);
-            FileWriter writer = new FileWriter(file);
+            Uri treeUri = Uri.parse(treeUriStr);
+            String treeDocumentId =
+                    DocumentsContract.getTreeDocumentId(treeUri);
+            Uri docTreeUri =
+                    DocumentsContract.buildDocumentUriUsingTree(treeUri,
+                            treeDocumentId);
+            ContentResolver resolver = this.getContentResolver();
+            Uri docUri = DocumentsContract.createDocument(resolver, docTreeUri,
+                    "text/plain", fileName);
+            Log.d(TAG, "save: docUri=" + docUri);
+
+            ParcelFileDescriptor pfd = getContentResolver().
+                    openFileDescriptor(docUri, "w");
+            writer = new FileWriter(pfd.getFileDescriptor());
             out = new BufferedWriter(writer);
             cursor = mDbAdapter.fetchAllData(filters[mFilter].selection,
                     mSortOrder);
@@ -502,7 +415,10 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
             while (!cursor.isAfterLast()) {
                 comment = "<None>";
                 if (indexComment > -1) {
-                    comment = cursor.getString(indexComment);
+                    // Convert tabs and newlines to text for restore
+                    comment = cursor.getString(indexComment)
+                            .replaceAll("\\n", "<br>")
+                            .replaceAll("\\t", "<tab>");
                 }
                 date = "<Unknown>";
                 if (indexDate > -1) {
@@ -522,20 +438,79 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
                 out.write(info);
                 cursor.moveToNext();
             }
-            Utils.infoMsg(this, "Wrote " + file.getPath());
+            Utils.infoMsg(this, "Wrote " + docUri.getLastPathSegment());
         } catch (Exception ex) {
-            Utils.excMsg(this, "Error saving to SD card", ex);
+            String msg = "Error saving to SD card";
+            Utils.excMsg(this, msg, ex);
+            Log.e(TAG, msg, ex);
         } finally {
             try {
                 if (cursor != null) cursor.close();
-            } catch (Exception ex) {
-                // Do nothing
-            }
-            try {
                 if (out != null) out.close();
+                if (writer != null) writer.close();
             } catch (Exception ex) {
                 // Do nothing
             }
+        }
+    }
+
+    private void saveDatabase() {
+        SharedPreferences prefs = getPreferences(MODE_PRIVATE);
+        String treeUriStr = prefs.getString(PREF_TREE_URI, null);
+        if (treeUriStr == null) {
+            Utils.errMsg(this, "There is no data directory set");
+            return;
+        }
+        FileInputStream inputStream = null;
+        OutputStream outputStream = null;
+        try {
+            String format = "yyyy-MM-dd-HHmmss";
+            SimpleDateFormat df = new SimpleDateFormat(format, Locale.US);
+            Date now = new Date();
+            String fileName = String.format(saveDatabaseTemplate,
+                    df.format(now));
+            Uri treeUri = Uri.parse(treeUriStr);
+            String treeDocumentId =
+                    DocumentsContract.getTreeDocumentId(treeUri);
+            Uri docTreeUri =
+                    DocumentsContract.buildDocumentUriUsingTree(treeUri,
+                            treeDocumentId);
+            ContentResolver resolver = this.getContentResolver();
+            Uri docUri = DocumentsContract.createDocument(resolver, docTreeUri,
+                    "application/vnd.sqlite3", fileName);
+            Log.d(TAG, "saveDatabase: docUri=" + docUri);
+            try {
+                // Close the database
+                if (mDbAdapter != null) {
+                    mDbAdapter.close();
+                }
+                File file = new File(getExternalFilesDir(null), DB_NAME);
+                inputStream = new FileInputStream(file);
+                ParcelFileDescriptor pfd = getContentResolver().
+                        openFileDescriptor(docUri, "w");
+                outputStream =
+                        new FileOutputStream(pfd.getFileDescriptor());
+                byte[] buff = new byte[1024];
+                int read;
+                while ((read = inputStream.read(buff, 0, buff.length)) > 0)
+                    outputStream.write(buff, 0, read);
+            } catch (Exception ex) {
+                String msg =
+                        "Failed to save database from " + docUri.getLastPathSegment();
+                Utils.excMsg(this, msg, ex);
+                Log.e(TAG, msg, ex);
+            } finally {
+                if (inputStream != null) inputStream.close();
+                if (outputStream != null) outputStream.close();
+                if (mDbAdapter != null) {
+                    mDbAdapter.open();
+                }
+            }
+            Utils.infoMsg(this, "Wrote " + docUri.getLastPathSegment());
+        } catch (Exception ex) {
+            String msg = "Error saving to SD card";
+            Utils.excMsg(this, msg, ex);
+            Log.e(TAG, msg, ex);
         }
     }
 
@@ -545,46 +520,43 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
      * and restore.
      */
     private void checkRestore() {
-        if (mDataDir == null) {
-            Utils.errMsg(this, "Cannot find Heart Notes Data Directory");
+        // Find the .txt files in the data directory
+        SharedPreferences prefs = getPreferences(MODE_PRIVATE);
+        String treeUriStr = prefs.getString(PREF_TREE_URI, null);
+        if (treeUriStr == null) {
+            Utils.errMsg(this, "There is no tree Uri set");
             return;
         }
-
-        // Find the .txt files in the data directory
-        final File[] files = mDataDir.listFiles(new FileFilter() {
-            @Override
-            public boolean accept(File file) {
-                if (file.isDirectory()) {
-                    return false;
-                } else {
-                    String[] extensions = {".txt"};
-                    String path = file.getAbsolutePath().toLowerCase(Locale.US);
-                    for (String extension : extensions) {
-                        if (path.endsWith(extension)) {
-                            return true;
-                        }
-                    }
-                }
-                return false;
-            }
-        });
-        if (files == null || files.length == 0) {
+        Uri treeUri = Uri.parse(treeUriStr);
+        String treeDocumentId =
+                DocumentsContract.getTreeDocumentId(treeUri);
+        Uri docUri = DocumentsContract.buildDocumentUriUsingTree(treeUri,
+                treeDocumentId);
+        final List<UriData> children = getChildren(treeUri, ".txt");
+        final int len = children.size();
+        if (len == 0) {
             Utils.errMsg(this, "There are no .txt files in the data directory");
             return;
         }
-
         // Sort them by date with newest first
-        Arrays.sort(files, new Comparator<File>() {
-            public int compare(File f1, File f2) {
-                return Long.valueOf(f2.lastModified()).compareTo(
-                        f1.lastModified());
+        Collections.sort(children, new Comparator<UriData>() {
+            public int compare(UriData data1, UriData data2) {
+                return Long.compare(data2.modifiedTime, data1.modifiedTime);
             }
         });
 
         // Prompt for the file to use
-        final CharSequence[] items = new CharSequence[files.length];
-        for (int i = 0; i < files.length; i++) {
-            items[i] = files[i].getName();
+        final CharSequence[] items = new CharSequence[children.size()];
+        String displayName;
+        UriData uriData;
+        Uri child;
+        for (int i = 0; i < len; i++) {
+            uriData = children.get(i);
+            displayName = uriData.displayName;
+            if (displayName == null) {
+                displayName = uriData.uri.getLastPathSegment();
+            }
+            items[i] = displayName;
         }
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle(getText(R.string.select_restore_file));
@@ -593,7 +565,7 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
                     public void onClick(DialogInterface dialog, final int
                             item) {
                         dialog.dismiss();
-                        if (item < 0 || item >= files.length) {
+                        if (item < 0 || item >= len) {
                             Utils.errMsg(HeartNotesActivity.this,
                                     "Invalid item");
                             return;
@@ -610,7 +582,7 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
                                                     DialogInterface dialog,
                                                     int which) {
                                                 dialog.dismiss();
-                                                restoreData(files[item]);
+                                                restoreData(children.get(item).uri);
                                             }
 
                                         })
@@ -624,15 +596,19 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
 
     /**
      * Deletes the existing data without prompting and restores the new data.
+     *
+     * @param uri The Uri.
      */
-    private void restoreData(File file) {
+    private void restoreData(Uri uri) {
+        Log.d(TAG, "restoreData: uri=" + uri);
         BufferedReader in = null;
+        InputStreamReader inputStreamReader = null;
         int lineNum = 0;
         try {
-            if (!file.exists()) {
-                Utils.errMsg(this, "Cannot find:\n" + file.getPath());
-                return;
-            }
+//            if (!uri.exists()) {
+//                Utils.errMsg(this, "Cannot find:\n" + uri.getPath());
+//                return;
+//            }
 
             // Delete all the data and recreate the table
             mDbAdapter.recreateTable();
@@ -645,9 +621,12 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
             String comment;
             Date date;
             int slash;
-            in = new BufferedReader(new FileReader(file));
+            inputStreamReader = new InputStreamReader(
+                    getContentResolver().openInputStream(uri));
+            in = new BufferedReader(inputStreamReader);
             while ((line = in.readLine()) != null) {
                 lineNum++;
+                Log.d(TAG, lineNum + " " + line);
                 tokens = line.trim().split("\t");
                 // Skip blank lines
                 if (tokens.length == 0) {
@@ -675,7 +654,9 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
                 total = Integer.parseInt(tokens[0].substring(slash + 1).trim());
                 date = HeartNotesActivity.longFormatter.parse(tokens[1]
                         .trim());
-                comment = tokens[2];
+                // Convert newline and tabs back
+                comment = tokens[2].replaceAll("<br>", "\n").replaceAll("<tab" +
+                        ">", "\t");
                 long id = -1;
                 if (date != null) {
                     id = mDbAdapter.createData(date.getTime(), dateMod, count,
@@ -690,14 +671,15 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
             }
             refresh();
             Utils.infoMsg(this,
-                    "Restored " + lineNum + " lines from " + file.getPath());
+                    "Restored " + lineNum + " lines from " + uri.getPath());
         } catch (Exception ex) {
-            Utils.excMsg(this, "Error restoring at line " + lineNum, ex);
+            String msg = "Error restoring at line " + lineNum;
+            Utils.excMsg(this, msg, ex);
+            Log.e(TAG, msg, ex);
         } finally {
             try {
-                if (in != null) {
-                    in.close();
-                }
+                if (in != null) in.close();
+                if (inputStreamReader != null) inputStreamReader.close();
             } catch (Exception ex) {
                 // Do nothing
             }
@@ -764,6 +746,92 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
                 });
         AlertDialog alert = builder.create();
         alert.show();
+    }
+
+    private List<UriData> getChildren(Uri uri, String ext) {
+        ContentResolver contentResolver = this.getContentResolver();
+        Uri childrenUri =
+                DocumentsContract.buildChildDocumentsUriUsingTree(uri,
+                        DocumentsContract.getTreeDocumentId(uri));
+        List<UriData> children = new ArrayList<>();
+        Cursor cursor = null;
+        try {
+            cursor = contentResolver.query(childrenUri,
+                    new String[]{
+                            DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+                            DocumentsContract.Document.COLUMN_LAST_MODIFIED,
+                            DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+                    },
+                    null,
+                    null,
+                    null);
+            String documentId;
+            Uri documentUri;
+            long modifiedTime;
+            String displayName;
+            while (cursor.moveToNext()) {
+                documentId = cursor.getString(0);
+                documentUri = DocumentsContract.buildDocumentUriUsingTree(uri,
+                        documentId);
+                modifiedTime = cursor.getLong(1);
+                displayName = cursor.getString(2);
+                if (documentUri.getLastPathSegment().toLowerCase().endsWith(ext)) {
+                    children.add(new UriData(documentUri, modifiedTime,
+                            displayName));
+                }
+            }
+        } finally {
+            try {
+                if (cursor != null) cursor.close();
+            } catch (Exception ex) {
+                // Do nothing
+            }
+        }
+        return children;
+    }
+
+    public String getNameDisplayName(Uri uri) {
+        Cursor cursor = null;
+        String displayName = null;
+        try {
+            cursor = getContentResolver().query(uri, null, null, null, null);
+            cursor.moveToFirst();
+            displayName =
+                    cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME));
+        } finally {
+            try {
+                if (cursor != null) cursor.close();
+            } catch (Exception ex) {
+                // Do nothing
+            }
+        }
+        return displayName;
+    }
+
+    /**
+     * Releases all permissions.
+     */
+    private void releaseAllPermissions() {
+        ContentResolver resolver = this.getContentResolver();
+        final List<UriPermission> permissionList =
+                resolver.getPersistedUriPermissions();
+        int nPermissions = permissionList.size();
+        if (nPermissions == 0) {
+//            Utils.warnMsg(this, "There are no persisted permissions");
+            return;
+        }
+        Uri uri;
+        for (UriPermission permission : permissionList) {
+            uri = permission.getUri();
+            resolver.releasePersistableUriPermission(uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION |
+                            Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+        }
+//        // Set the preference to null
+//        SharedPreferences.Editor editor =
+//                getPreferences(MODE_PRIVATE).edit();
+//        editor.putString(PREF_TREE_URI, null);
+//        editor.apply();
     }
 
     /**
@@ -965,4 +1033,18 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
         TextView subTitle;
     }
 
+    /**
+     * Convience class for managing views for a ListView row.
+     */
+    private static class UriData {
+        final public Uri uri;
+        final public long modifiedTime;
+        final public String displayName;
+
+        UriData(Uri uri, long modifiedTime, String displayName) {
+            this.uri = uri;
+            this.modifiedTime = modifiedTime;
+            this.displayName = displayName;
+        }
+    }
 }

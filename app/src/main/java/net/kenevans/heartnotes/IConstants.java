@@ -58,6 +58,7 @@ public interface IConstants {
     String PREF_OPENWEATHER_KEY = "openWeatherKey";
     String PREF_FILTER = "filter";
     String PREF_SORT_ORDER = "sortOrder";
+    String PREF_TREE_URI = "tree_uri";
 
     // Information
     /**
@@ -109,11 +110,16 @@ public interface IConstants {
     /**
      * Request code for creating new data.
      */
-    int ACTIVITY_CREATE = 0;
+    int REQ_CREATE = 0;
     /**
      * Request code for editing data.
      */
-    int ACTIVITY_EDIT = 1;
+    int REQ_EDIT = 1;
+    /**
+     * Request code for ACTION_OPEN_DOCUMENT_TREE.
+     */
+    int REQ_GET_TREE = 10;
+
 
     /**
      * The static long formatter to use for formatting dates.
