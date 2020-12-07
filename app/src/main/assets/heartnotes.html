@@ -10,12 +10,15 @@
 <ul>
   <li><strong>Date</strong>: The date of the note, can be modified. </li>
   <li><strong>Modification Date</strong>: The date the note was last modified. (Automatic and cannot be modified. ) </li>
-  <li><strong>Count</strong>: Intended as a count of missing beats, typically when taking a pulse. </li>
-  <li><strong>Total</strong>: The total number of beats counted. </li>
+  <li><strong>Count</strong>: Intended as a count of missing beats, typically when taking a pulse. Can be used for whatever you want. </li>
+  <li><strong>Total</strong>: The total number of beats counted.  Can be used for whatever you want. </li>
   <li><strong>Edited</strong>: Whether it has been edited or not. (Automatic and cannot be modified.)</li>
   <li><strong>Comment</strong>: The note text.</li>
 </ul>
-<p>One of its advantages, is that you do not have to enter things like the time, since they are entered automatically. </p>
+<p>One of its advantages, is that you do not have to enter things like the time, since they are entered automatically.</p>
+<p>Heart Notes has been made to work with the Android Storage Access Framework in order to comply with Android policies about writing external storage. The database itself is located at /primary/Android/data/net.kenevans.heartnotes/Files/HeartNotes.db. (&quot;primary&quot; usually has a name like /storage/emulated/0.) This is an app-specific directory, and anything in it will be lost if the app is uninstalled. Owing to recent changes there is nowhere else to put the database (except in internal storage where it would not be visible at all). The databse can be replaced with another HeartNotes database, perhaps a backup, if desired. </p>
+<p>The data, such as saved text and databases, go in a data directory. You need to allow Heart Notes access to this directory by selecting it in a system file chooser.  You do this with the Set Data Directory menu item.  It can be on the external SD card. Repeating this operation will override the previous setting but will not move the files. You can do that manually. The data in this directory will be retained on uninstall (provided it is not in app-specific storage). Starting with Android 1, it cannot be the Downloads directory.</p>
+<p>Heart Notes requires permissions for Location if you use  <a href="https://openweathermap.org/">OpenWeather</a> to get weather information. </p>
 <p>The <a href="#mainscreen">main screen</a> consists of a list of the notes in the database. Clicking an item in the list allows you to edit it in the <a href="#editscreen">edit screen</a>, which has entries for all of the fields plus Delete, Cancel, and Save buttons. There is a means to insert the weather, as well. </p>
 <h3 align="left"><a name="mainscreen" id="mainscreen"></a>Main Screen Menu Items </h3>
 <h4>New</h4>
@@ -31,14 +34,16 @@
 <h4>Refresh</h4>
 <p>Recreates the list from the database. </p>
 <h4>Save as Text</h4>
-<p>Saves the database as a text file. The file will be created in the directory with the database (which can be specified, see below). The name is of the form Heart Notes-yyyy-MM-dd-HHmmss.txt, and the values correspond to the time it is saved. The file is intended to be formatted so it can be viewed and printed without editing. The lines are of the form:</p>
+<p>Saves the database as a text file to the Data directory. The name is of the form Heart Notes-yyyy-MM-dd-HHmmss.txt, and the values correspond to the time it is saved. The file is intended to be formatted so it can be viewed and printed without editing. It can also be read as a CSV file, tab delimited. Note that it is better to not use tabs and carriage returns in the note itself. It interferes with restoring the database from one of the text files or using it as a CSV file. The lines are of the form:</p>
 <pre>2/60 	Jun 03, 2012 23:00:00 -0500 	After working out.</pre>
+<h4>Save Database </h4>
+<p>Saves the database to the Data Directory. The name is of the form Heart Notes-yyyy-MM-dd-HHmmss.db, and the values correspond to the time it is saved. This database can be used externally and also be used to replace the database in /primary/Android/data/net.kenevans.heartnotes/Files. </p>
 <h4>Restore</h4>
 <p>Restores the database from one of the saved text files. Since the editing information is not saved, it will be set to the date the database was restored. </p>
 <h4>Set OpenWeather Key </h4>
 <p>HeartNotes can get the current weather from <a href="https://openweathermap.org/">OpenWeather</a> and insert it in a note. To do this you need to register and get a key. (It is free.) This is where you set the key. </p>
 <h4>Set Data Directory</h4>
-<p>You can set the directory where the database is located and where text files are saved. This must be a directory that is writtable by the app, so it probably should not be on the external SD card. You can use this to switch to different directories with different data, if you like. </p>
+<p>You can set the data directory where text files and database backups are saved. You have to do this or you cannot save these items. You need to allow Heart Notes access to this directory by selecting it in a system file chooser.  You do this with the Set Data Directory menu item.  It can be on the external SD card. You can use this to switch to different directories with different data, if you like. This is the directory for saved files only. The database remains in /primary/Android/data/net.kenevans.heartnotes/Files/HeartNotes.db unless replaced manually. </p>
 <h4>Help</h4>
 <p>Displays this page.</p>
 <h3 align="left"><a name="editscreen" id="editscreen"></a>Edit Screen Menu Items </h3>
