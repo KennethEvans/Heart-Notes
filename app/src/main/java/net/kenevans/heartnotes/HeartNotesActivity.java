@@ -1,18 +1,15 @@
 package net.kenevans.heartnotes;
 
-import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.ContentResolver;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.UriPermission;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
 import android.provider.DocumentsContract;
-import android.provider.OpenableColumns;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -58,7 +55,6 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
 
     private HeartNotesDbAdapter mDbAdapter;
     private CustomListAdapter mListAdapter;
-    private File mDataDir;
     private ListView mListView;
     private String mSortOrder = SORT_DESCENDING;
     private boolean mListViewToEnd = false;
@@ -84,7 +80,7 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
             @Override
             public void onItemClick(AdapterView<?> parent, View view,
                                     int position, long id) {
-                onListItemClick(mListView, view, position, id);
+                onListItemClick(position, id);
             }
         });
 
@@ -112,7 +108,6 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
 
         // Position it to the end
         positionListView(mListViewToEnd);
-
     }
 
     @Override
@@ -158,7 +153,7 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
             createData();
             return true;
         } else if (id == R.id.savetext) {
-            save();
+            saveData();
             return true;
         } else if (id == R.id.savedb) {
             saveDatabase();
@@ -180,11 +175,11 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
         } else if (id == R.id.restore) {
             checkRestore();
             return true;
-        } else if (id == R.id.setopenweatherkey) {
+        } else if (id == R.id.set_openweather_key) {
             setOpenWeatherKey();
             return true;
-        } else if (id == R.id.setdatadirectory) {
-            setDataDirectory();
+        } else if (id == R.id.choose_data_directory) {
+            chooseDataDirectory();
             return true;
         } else if (id == R.id.help) {
             showHelp();
@@ -193,7 +188,7 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
         return false;
     }
 
-    protected void onListItemClick(ListView lv, View view, int position, long
+    protected void onListItemClick(int position, long
             id) {
 //        super.onListItemClick(lv, view, position, id);
         Log.d(TAG, this.getClass().getSimpleName() + ": onListItemClick: " +
@@ -210,25 +205,33 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode,
-                                    Intent resultData) {
-        super.onActivityResult(requestCode, resultCode, resultData);
-        if (requestCode == REQ_GET_TREE) {
+                                    Intent intent) {
+        super.onActivityResult(requestCode, resultCode, intent);
+        if (requestCode == REQ_GET_TREE && resultCode == RESULT_OK) {
             Uri treeUri;
-            if (resultCode == Activity.RESULT_OK) {
-                // Get Uri from Storage Access Framework.
-                treeUri = resultData.getData();
-                // Keep them from accumulating
-                releaseAllPermissions();
-                SharedPreferences.Editor editor = getPreferences(MODE_PRIVATE)
-                        .edit();
+            // Get Uri from Storage Access Framework.
+            treeUri = intent.getData();
+            // Keep them from accumulating
+            UriUtils.releaseAllPermissions(this);
+            SharedPreferences.Editor editor = getPreferences(MODE_PRIVATE)
+                    .edit();
+            if (treeUri != null) {
                 editor.putString(PREF_TREE_URI, treeUri.toString());
-                editor.apply();
+            } else {
+                editor.putString(PREF_TREE_URI, null);
+            }
+            editor.apply();
 
-                // Persist access permissions.
-                final int takeFlags = resultData.getFlags()
-                        & (Intent.FLAG_GRANT_READ_URI_PERMISSION |
-                        Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
-                this.getContentResolver().takePersistableUriPermission(treeUri, takeFlags);
+            // Persist access permissions.
+            final int takeFlags = intent.getFlags()
+                    & (Intent.FLAG_GRANT_READ_URI_PERMISSION |
+                    Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+            if (treeUri != null) {
+                this.getContentResolver().takePersistableUriPermission(treeUri,
+                        takeFlags);
+            } else {
+                Utils.errMsg(this, "Failed to get presistent access " +
+                        "permissions");
             }
         }
     }
@@ -236,11 +239,11 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
     /**
      * Sets the current data directory
      */
-    private void setDataDirectory() {
+    private void chooseDataDirectory() {
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
-        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION & Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION &
+                Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
 //        intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, uriToLoad);
-
         startActivityForResult(intent, REQ_GET_TREE);
     }
 
@@ -368,22 +371,19 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
     /**
      * Saves the info to the SD card.
      */
-    private void save() {
+    private void saveData() {
         SharedPreferences prefs = getPreferences(MODE_PRIVATE);
         String treeUriStr = prefs.getString(PREF_TREE_URI, null);
         if (treeUriStr == null) {
             Utils.errMsg(this, "There is no data directory set");
             return;
         }
-        FileWriter writer = null;
-        BufferedWriter out = null;
-        Cursor cursor = null;
+        String format = "yyyy-MM-dd-HHmmss";
+        SimpleDateFormat df = new SimpleDateFormat(format, Locale.US);
+        Date now = new Date();
+        String fileName = String.format(saveFileTemplate,
+                df.format(now));
         try {
-            String format = "yyyy-MM-dd-HHmmss";
-            SimpleDateFormat df = new SimpleDateFormat(format, Locale.US);
-            Date now = new Date();
-            String fileName = String.format(saveFileTemplate,
-                    df.format(now));
             Uri treeUri = Uri.parse(treeUriStr);
             String treeDocumentId =
                     DocumentsContract.getTreeDocumentId(treeUri);
@@ -391,66 +391,59 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
                     DocumentsContract.buildDocumentUriUsingTree(treeUri,
                             treeDocumentId);
             ContentResolver resolver = this.getContentResolver();
+            ParcelFileDescriptor pfd;
             Uri docUri = DocumentsContract.createDocument(resolver, docTreeUri,
-                    "text/plain", fileName);
-            Log.d(TAG, "save: docUri=" + docUri);
-
-            ParcelFileDescriptor pfd = getContentResolver().
+                    "image/png", fileName);
+            pfd = getContentResolver().
                     openFileDescriptor(docUri, "w");
-            writer = new FileWriter(pfd.getFileDescriptor());
-            out = new BufferedWriter(writer);
-            cursor = mDbAdapter.fetchAllData(filters[mFilter].selection,
-                    mSortOrder);
-            // int indexId = cursor.getColumnIndex(COL_ID);
-            int indexDate = cursor.getColumnIndex(COL_DATE);
-            // int indexDateMod = cursor.getColumnIndex(COL_DATEMOD);
-            int indexCount = cursor.getColumnIndex(COL_COUNT);
-            int indexTotal = cursor.getColumnIndex(COL_TOTAL);
-            // indexEdited = cursor.getColumnIndex(COL_EDITED);
-            int indexComment = cursor.getColumnIndex(COL_COMMENT);
-            // Loop over items
-            cursor.moveToFirst();
-            String comment, info, date;
-            long count, total, dateNum;
-            while (!cursor.isAfterLast()) {
-                comment = "<None>";
-                if (indexComment > -1) {
-                    // Convert tabs and newlines to text for restore
-                    comment = cursor.getString(indexComment)
-                            .replaceAll("\\n", "<br>")
-                            .replaceAll("\\t", "<tab>");
+            try (FileWriter writer = new FileWriter(pfd.getFileDescriptor());
+                 BufferedWriter out = new BufferedWriter(writer);
+                 Cursor cursor =
+                         mDbAdapter.fetchAllData(filters[mFilter].selection,
+                                 mSortOrder)) {
+                // int indexId = cursor.getColumnIndex(COL_ID);
+                int indexDate = cursor.getColumnIndex(COL_DATE);
+                // int indexDateMod = cursor.getColumnIndex(COL_DATEMOD);
+                int indexCount = cursor.getColumnIndex(COL_COUNT);
+                int indexTotal = cursor.getColumnIndex(COL_TOTAL);
+                // indexEdited = cursor.getColumnIndex(COL_EDITED);
+                int indexComment = cursor.getColumnIndex(COL_COMMENT);
+                // Loop over items
+                cursor.moveToFirst();
+                String comment, info, date;
+                long count, total, dateNum;
+                while (!cursor.isAfterLast()) {
+                    comment = "<None>";
+                    if (indexComment > -1) {
+                        // Convert tabs and newlines to text for restore
+                        comment = cursor.getString(indexComment)
+                                .replaceAll("\\n", "<br>")
+                                .replaceAll("\\t", "<tab>");
+                    }
+                    date = "<Unknown>";
+                    if (indexDate > -1) {
+                        dateNum = cursor.getLong(indexDate);
+                        date = formatDate(dateNum);
+                    }
+                    count = -1;
+                    if (indexCount > -1) {
+                        count = cursor.getInt(indexCount);
+                    }
+                    total = -1;
+                    if (indexTotal > -1) {
+                        total = cursor.getInt(indexTotal);
+                    }
+                    info = String.format(Locale.US, "%2d/%d \t%s \t%s\n", count,
+                            total, date, comment);
+                    out.write(info);
+                    cursor.moveToNext();
                 }
-                date = "<Unknown>";
-                if (indexDate > -1) {
-                    dateNum = cursor.getLong(indexDate);
-                    date = formatDate(dateNum);
-                }
-                count = -1;
-                if (indexCount > -1) {
-                    count = cursor.getInt(indexCount);
-                }
-                total = -1;
-                if (indexTotal > -1) {
-                    total = cursor.getInt(indexTotal);
-                }
-                info = String.format(Locale.US, "%2d/%d \t%s \t%s\n", count,
-                        total, date, comment);
-                out.write(info);
-                cursor.moveToNext();
+                Utils.infoMsg(this, "Wrote " + docUri.getLastPathSegment());
             }
-            Utils.infoMsg(this, "Wrote " + docUri.getLastPathSegment());
         } catch (Exception ex) {
             String msg = "Error saving to SD card";
             Utils.excMsg(this, msg, ex);
             Log.e(TAG, msg, ex);
-        } finally {
-            try {
-                if (cursor != null) cursor.close();
-                if (out != null) out.close();
-                if (writer != null) writer.close();
-            } catch (Exception ex) {
-                // Do nothing
-            }
         }
     }
 
@@ -478,6 +471,10 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
             ContentResolver resolver = this.getContentResolver();
             Uri docUri = DocumentsContract.createDocument(resolver, docTreeUri,
                     "application/vnd.sqlite3", fileName);
+            if (docUri == null) {
+                Utils.errMsg(this, "Could not create document Uri");
+                return;
+            }
             Log.d(TAG, "saveDatabase: docUri=" + docUri);
             try {
                 // Close the database
@@ -496,7 +493,7 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
                     outputStream.write(buff, 0, read);
             } catch (Exception ex) {
                 String msg =
-                        "Failed to save database from " + docUri.getLastPathSegment();
+                        "Failed to save database";
                 Utils.excMsg(this, msg, ex);
                 Log.e(TAG, msg, ex);
             } finally {
@@ -528,10 +525,6 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
             return;
         }
         Uri treeUri = Uri.parse(treeUriStr);
-        String treeDocumentId =
-                DocumentsContract.getTreeDocumentId(treeUri);
-        Uri docUri = DocumentsContract.buildDocumentUriUsingTree(treeUri,
-                treeDocumentId);
         final List<UriData> children = getChildren(treeUri, ".txt");
         final int len = children.size();
         if (len == 0) {
@@ -549,7 +542,6 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
         final CharSequence[] items = new CharSequence[children.size()];
         String displayName;
         UriData uriData;
-        Uri child;
         for (int i = 0; i < len; i++) {
             uriData = children.get(i);
             displayName = uriData.displayName;
@@ -601,10 +593,11 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
      */
     private void restoreData(Uri uri) {
         Log.d(TAG, "restoreData: uri=" + uri);
-        BufferedReader in = null;
-        InputStreamReader inputStreamReader = null;
         int lineNum = 0;
-        try {
+        try (InputStreamReader inputStreamReader = new InputStreamReader(
+                getContentResolver().openInputStream(uri));
+             BufferedReader in = new BufferedReader(inputStreamReader)) {
+
 //            if (!uri.exists()) {
 //                Utils.errMsg(this, "Cannot find:\n" + uri.getPath());
 //                return;
@@ -621,9 +614,6 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
             String comment;
             Date date;
             int slash;
-            inputStreamReader = new InputStreamReader(
-                    getContentResolver().openInputStream(uri));
-            in = new BufferedReader(inputStreamReader);
             while ((line = in.readLine()) != null) {
                 lineNum++;
                 Log.d(TAG, lineNum + " " + line);
@@ -676,13 +666,6 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
             String msg = "Error restoring at line " + lineNum;
             Utils.excMsg(this, msg, ex);
             Log.e(TAG, msg, ex);
-        } finally {
-            try {
-                if (in != null) in.close();
-                if (inputStreamReader != null) inputStreamReader.close();
-            } catch (Exception ex) {
-                // Do nothing
-            }
         }
     }
 
@@ -748,23 +731,29 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
         alert.show();
     }
 
-    private List<UriData> getChildren(Uri uri, String ext) {
+    /**
+     * Gets a List of the children of the given document Uri that match the
+     * given extension.
+     *
+     * @param uri A document Uri.
+     * @param ext The extension.
+     * @return The list.
+     */
+    public List<UriData> getChildren(Uri uri, String ext) {
         ContentResolver contentResolver = this.getContentResolver();
         Uri childrenUri =
                 DocumentsContract.buildChildDocumentsUriUsingTree(uri,
                         DocumentsContract.getTreeDocumentId(uri));
         List<UriData> children = new ArrayList<>();
-        Cursor cursor = null;
-        try {
-            cursor = contentResolver.query(childrenUri,
-                    new String[]{
-                            DocumentsContract.Document.COLUMN_DOCUMENT_ID,
-                            DocumentsContract.Document.COLUMN_LAST_MODIFIED,
-                            DocumentsContract.Document.COLUMN_DISPLAY_NAME,
-                    },
-                    null,
-                    null,
-                    null);
+        try (Cursor cursor = contentResolver.query(childrenUri,
+                new String[]{
+                        DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+                        DocumentsContract.Document.COLUMN_LAST_MODIFIED,
+                        DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+                },
+                null,
+                null,
+                null)) {
             String documentId;
             Uri documentUri;
             long modifiedTime;
@@ -773,65 +762,20 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
                 documentId = cursor.getString(0);
                 documentUri = DocumentsContract.buildDocumentUriUsingTree(uri,
                         documentId);
+                if (documentUri == null) continue;
                 modifiedTime = cursor.getLong(1);
                 displayName = cursor.getString(2);
-                if (documentUri.getLastPathSegment().toLowerCase().endsWith(ext)) {
-                    children.add(new UriData(documentUri, modifiedTime,
-                            displayName));
+                String name = documentUri.getLastPathSegment();
+                if (name != null) {
+                    if (name.toLowerCase().endsWith(ext)) {
+                        children.add(new UriData(documentUri, modifiedTime,
+                                displayName));
+                    }
                 }
             }
-        } finally {
-            try {
-                if (cursor != null) cursor.close();
-            } catch (Exception ex) {
-                // Do nothing
-            }
         }
+        // Do nothing
         return children;
-    }
-
-    public String getNameDisplayName(Uri uri) {
-        Cursor cursor = null;
-        String displayName = null;
-        try {
-            cursor = getContentResolver().query(uri, null, null, null, null);
-            cursor.moveToFirst();
-            displayName =
-                    cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME));
-        } finally {
-            try {
-                if (cursor != null) cursor.close();
-            } catch (Exception ex) {
-                // Do nothing
-            }
-        }
-        return displayName;
-    }
-
-    /**
-     * Releases all permissions.
-     */
-    private void releaseAllPermissions() {
-        ContentResolver resolver = this.getContentResolver();
-        final List<UriPermission> permissionList =
-                resolver.getPersistedUriPermissions();
-        int nPermissions = permissionList.size();
-        if (nPermissions == 0) {
-//            Utils.warnMsg(this, "There are no persisted permissions");
-            return;
-        }
-        Uri uri;
-        for (UriPermission permission : permissionList) {
-            uri = permission.getUri();
-            resolver.releasePersistableUriPermission(uri,
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION |
-                            Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
-        }
-//        // Set the preference to null
-//        SharedPreferences.Editor editor =
-//                getPreferences(MODE_PRIVATE).edit();
-//        editor.putString(PREF_TREE_URI, null);
-//        editor.apply();
     }
 
     /**
@@ -848,8 +792,8 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
      * Class to manage a Filter.
      */
     private static class Filter {
-        private CharSequence name;
-        private String selection;
+        private final CharSequence name;
+        private final String selection;
 
         private Filter(CharSequence menuName, String selection) {
             this.name = menuName;
@@ -861,11 +805,11 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
      * Class to manage the data needed for an item in the ListView.
      */
     private static class Data {
-        private long id;
-        private String comment;
-        private long dateNum;
-        private int count;
-        private int total;
+        private final long id;
+        private final String comment;
+        private final long dateNum;
+        private final int count;
+        private final int total;
 
         public Data(long id, String comment, long dateNum, int count, int
                 total) {
@@ -901,9 +845,8 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
      * ListView adapter class for this activity.
      */
     private class CustomListAdapter extends BaseAdapter {
-        private ArrayList<Data> mData;
-        private LayoutInflater mInflator;
-        private int indexId;
+        private final ArrayList<Data> mData;
+        private final LayoutInflater mInflator;
         private int indexDate;
         private int indexCount;
         private int indexTotal;
@@ -921,7 +864,7 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
                 if (mDbAdapter != null) {
                     cursor = mDbAdapter.fetchAllData(filters[mFilter]
                             .selection, mSortOrder);
-                    indexId = cursor.getColumnIndex(COL_ID);
+                    int indexId = cursor.getColumnIndex(COL_ID);
                     indexDate = cursor.getColumnIndex(COL_DATE);
                     // indexDateMod = cursor.getColumnIndex(COL_DATEMOD);
                     indexCount = cursor.getColumnIndex(COL_COUNT);
@@ -1034,7 +977,7 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
     }
 
     /**
-     * Convience class for managing views for a ListView row.
+     * Convenience class for managing Uri information.
      */
     private static class UriData {
         final public Uri uri;

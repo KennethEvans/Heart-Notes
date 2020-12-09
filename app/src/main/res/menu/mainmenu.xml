@@ -8,7 +8,7 @@
     <item android:id="@+id/savetext" android:title="@string/save_item" />
     <item android:id="@+id/savedb" android:title="@string/save_db" />
     <item android:id="@+id/restore" android:title="@string/restore_item" />
-    <item android:id="@+id/setopenweatherkey" android:title="@string/set_key_item" />
-    <item android:id="@+id/setdatadirectory" android:title="@string/set_data_directory_item" />
+    <item android:id="@+id/set_openweather_key" android:title="@string/set_key_item" />
+    <item android:id="@+id/choose_data_directory" android:title="@string/choose_data_directory_item" />
     <item android:id="@+id/help" android:title="@string/help_item" />
 </menu>
