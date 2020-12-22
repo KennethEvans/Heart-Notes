@@ -5,6 +5,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
 
 import java.io.File;
@@ -38,7 +39,7 @@ public class HeartNotesDbAdapter implements IConstants {
      * Constructor - takes the context to allow the database to be
      * opened/created
      *
-     * @param ctx     The context.
+     * @param ctx The context.
      */
     public HeartNotesDbAdapter(Context ctx) {
         mCtx = ctx;
@@ -72,7 +73,8 @@ public class HeartNotesDbAdapter implements IConstants {
                     return null;
                 }
             }
-            mDbHelper = new DatabaseHelper(dataDir.getPath());
+            mDbHelper = new DatabaseHelper(mCtx, dataDir.getPath()
+                    + File.separator + DB_NAME);
             mDb = mDbHelper.getWritableDatabase();
         } catch (Exception ex) {
             Utils.excMsg(mCtx, "Error opening database at " + dataDir, ex);
@@ -196,9 +198,9 @@ public class HeartNotesDbAdapter implements IConstants {
      * management. Extends a custom version that writes to the SD Card instead
      * of using the Context.
      */
-    private static class DatabaseHelper extends SDCardSQLiteOpenHelper {
-        public DatabaseHelper(String dir) {
-            super(dir, DB_NAME, null, DB_VERSION);
+    private static class DatabaseHelper extends SQLiteOpenHelper {
+        public DatabaseHelper(Context context, String dir) {
+            super(context, dir, null, DB_VERSION);
         }
 
         @Override

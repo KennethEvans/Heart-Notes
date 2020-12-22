@@ -54,7 +54,6 @@ public interface IConstants {
     int DB_VERSION = 1;
 
     // Preferences
-    String PREF_DATA_DIRECTORY = "dataDirectory";
     String PREF_OPENWEATHER_KEY = "openWeatherKey";
     String PREF_FILTER = "filter";
     String PREF_SORT_ORDER = "sortOrder";

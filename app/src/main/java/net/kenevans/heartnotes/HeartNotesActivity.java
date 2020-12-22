@@ -393,7 +393,7 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
             ContentResolver resolver = this.getContentResolver();
             ParcelFileDescriptor pfd;
             Uri docUri = DocumentsContract.createDocument(resolver, docTreeUri,
-                    "image/png", fileName);
+                    "text/plain", fileName);
             pfd = getContentResolver().
                     openFileDescriptor(docUri, "w");
             try (FileWriter writer = new FileWriter(pfd.getFileDescriptor());
