@@ -31,6 +31,20 @@ public class UriUtils implements IConstants {
         }
     }
 
+    /***
+     * Gets the file name from the given Uri,
+     * @param uri The Uri.
+     * @return The file name or null if not determined.
+     */
+    public static String getFileNameFromUri(Uri uri) {
+        if (uri == null) return null;
+        String lastSeg = uri.getLastPathSegment();
+        String[] tokens = lastSeg.split("/");
+        int len = tokens.length;
+        if (tokens == null || len == 0) return null;
+        return tokens[len - 1];
+    }
+
     /**
      * Gets the display name for a given documentUri.
      *
@@ -43,9 +57,9 @@ public class UriUtils implements IConstants {
         try (Cursor cursor = context.getContentResolver().query(uri, null, null,
                 null, null)) {
             cursor.moveToFirst();
-            displayName =
-                    cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME));
-        } catch(Exception ex) {
+            int colIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+            if (colIndex > -1) displayName = cursor.getString(colIndex);
+        } catch (Exception ex) {
             Utils.excMsg(context, "Error getting display name", ex);
         }
         return displayName;
@@ -112,7 +126,7 @@ public class UriUtils implements IConstants {
             sb.append(permission.getUri()).append("\n");
             sb.append("    time=").
                     append(new Date(permission.getPersistedTime())).append(
-                            "\n");
+                    "\n");
             sb.append("    access=").append(permission.isReadPermission() ?
                     "R" : "").append(permission.isWritePermission() ? "W" :
                     "").append("\n");

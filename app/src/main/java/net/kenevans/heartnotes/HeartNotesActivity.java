@@ -2,7 +2,6 @@ package net.kenevans.heartnotes;
 
 import android.app.AlertDialog;
 import android.content.ContentResolver;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
@@ -17,7 +16,6 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.AdapterView;
 import android.widget.BaseAdapter;
 import android.widget.EditText;
 import android.widget.ListView;
@@ -30,11 +28,10 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
+import java.nio.channels.FileChannel;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -76,13 +73,7 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.list_view);
         mListView = findViewById(R.id.mainListView);
-        mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view,
-                                    int position, long id) {
-                onListItemClick(position, id);
-            }
-        });
+        mListView.setOnItemClickListener((parent, view, position, id) -> onListItemClick(position, id));
 
 
         // Create filters here so getText is available
@@ -175,6 +166,9 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
         } else if (id == R.id.restore) {
             checkRestore();
             return true;
+        } else if (id == R.id.replace_database) {
+            checkReplaceDatabase();
+            return true;
         } else if (id == R.id.set_openweather_key) {
             setOpenWeatherKey();
             return true;
@@ -223,14 +217,12 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
             editor.apply();
 
             // Persist access permissions.
-            final int takeFlags = intent.getFlags()
-                    & (Intent.FLAG_GRANT_READ_URI_PERMISSION |
-                    Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
             if (treeUri != null) {
                 this.getContentResolver().takePersistableUriPermission(treeUri,
-                        takeFlags);
+                        Intent.FLAG_GRANT_READ_URI_PERMISSION |
+                                Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
             } else {
-                Utils.errMsg(this, "Failed to get presistent access " +
+                Utils.errMsg(this, "Failed to get persistent access " +
                         "permissions");
             }
         }
@@ -263,22 +255,17 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
             input.setText(keyName);
         }
         alert.setView(input);
-        alert.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
-            public void onClick(DialogInterface dialog, int whichButton) {
-                String value = input.getText().toString();
-                SharedPreferences.Editor editor = getPreferences(MODE_PRIVATE)
-                        .edit();
-                editor.putString(PREF_OPENWEATHER_KEY, value);
-                editor.apply();
-            }
+        alert.setPositiveButton("Ok", (dialog, whichButton) -> {
+            String value = input.getText().toString();
+            SharedPreferences.Editor editor = getPreferences(MODE_PRIVATE)
+                    .edit();
+            editor.putString(PREF_OPENWEATHER_KEY, value);
+            editor.apply();
         });
 
         alert.setNegativeButton("Cancel",
-                new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int
-                            whichButton) {
-                        // Do nothing
-                    }
+                (dialog, whichButton) -> {
+                    // Do nothing
                 });
 
         alert.show();
@@ -290,15 +277,7 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
         // Use -1 for the COL_ID to indicate it is new
         i.putExtra(COL_ID, -1L);
         startActivityForResult(i, REQ_CREATE);
-        // Date date = new Date();
-        // Date dateMod = date;
-        // int count = (int) Math.round(Math.random() * 60);
-        // int total = 60;
-        // String comment = "This is a test";
-        // mDbAdapter.createData(date.getTime(), dateMod.getTime(), count,
-        // total,
-        // false, comment);
-    }
+     }
 
     /**
      * Show the help.
@@ -360,11 +339,9 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
      * @param toEnd True to go to the end, false to go to the beginning.
      */
     private void positionListView(final boolean toEnd) {
-        mListView.post(new Runnable() {
-            public void run() {
-                int pos = toEnd ? mListView.getCount() - 1 : 0;
-                mListView.setSelection(pos);
-            }
+        mListView.post(() -> {
+            int pos = toEnd ? mListView.getCount() - 1 : 0;
+            mListView.setSelection(pos);
         });
     }
 
@@ -454,8 +431,6 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
             Utils.errMsg(this, "There is no data directory set");
             return;
         }
-        FileInputStream inputStream = null;
-        OutputStream outputStream = null;
         try {
             String format = "yyyy-MM-dd-HHmmss";
             SimpleDateFormat df = new SimpleDateFormat(format, Locale.US);
@@ -475,33 +450,21 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
                 Utils.errMsg(this, "Could not create document Uri");
                 return;
             }
+            ParcelFileDescriptor pfd = getContentResolver().
+                    openFileDescriptor(docUri, "rw");
+            File src = new File(getExternalFilesDir(null), DB_NAME);
             Log.d(TAG, "saveDatabase: docUri=" + docUri);
-            try {
-                // Close the database
-                if (mDbAdapter != null) {
-                    mDbAdapter.close();
-                }
-                File file = new File(getExternalFilesDir(null), DB_NAME);
-                inputStream = new FileInputStream(file);
-                ParcelFileDescriptor pfd = getContentResolver().
-                        openFileDescriptor(docUri, "w");
-                outputStream =
-                        new FileOutputStream(pfd.getFileDescriptor());
-                byte[] buff = new byte[1024];
-                int read;
-                while ((read = inputStream.read(buff, 0, buff.length)) > 0)
-                    outputStream.write(buff, 0, read);
+            try (FileChannel in =
+                         new FileInputStream(src).getChannel();
+                 FileChannel out =
+                         new FileOutputStream(pfd.getFileDescriptor()).getChannel()) {
+                out.transferFrom(in, 0, in.size());
             } catch (Exception ex) {
-                String msg =
-                        "Failed to save database";
-                Utils.excMsg(this, msg, ex);
+                String msg = "Error copying source database from "
+                        + docUri.getLastPathSegment() + " to "
+                        + src.getPath();
                 Log.e(TAG, msg, ex);
-            } finally {
-                if (inputStream != null) inputStream.close();
-                if (outputStream != null) outputStream.close();
-                if (mDbAdapter != null) {
-                    mDbAdapter.open();
-                }
+                Utils.excMsg(this, msg, ex);
             }
             Utils.infoMsg(this, "Wrote " + docUri.getLastPathSegment());
         } catch (Exception ex) {
@@ -532,11 +495,9 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
             return;
         }
         // Sort them by date with newest first
-        Collections.sort(children, new Comparator<UriData>() {
-            public int compare(UriData data1, UriData data2) {
-                return Long.compare(data2.modifiedTime, data1.modifiedTime);
-            }
-        });
+        Collections.sort(children,
+                (data1, data2) -> Long.compare(data2.modifiedTime,
+                        data1.modifiedTime));
 
         // Prompt for the file to use
         final CharSequence[] items = new CharSequence[children.size()];
@@ -553,34 +514,93 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle(getText(R.string.select_restore_file));
         builder.setSingleChoiceItems(items, 0,
-                new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, final int
-                            item) {
-                        dialog.dismiss();
-                        if (item < 0 || item >= len) {
-                            Utils.errMsg(HeartNotesActivity.this,
-                                    "Invalid item");
-                            return;
-                        }
-                        // Confirm the user wants to delete all the current data
-                        new AlertDialog.Builder(HeartNotesActivity.this)
-                                .setIcon(android.R.drawable.ic_dialog_alert)
-                                .setTitle(R.string.confirm)
-                                .setMessage(R.string.delete_prompt)
-                                .setPositiveButton(R.string.ok,
-                                        new DialogInterface.OnClickListener() {
-                                            @Override
-                                            public void onClick(
-                                                    DialogInterface dialog,
-                                                    int which) {
-                                                dialog.dismiss();
-                                                restoreData(children.get(item).uri);
-                                            }
-
-                                        })
-                                .setNegativeButton(R.string.cancel, null)
-                                .show();
+                (dialog, item) -> {
+                    dialog.dismiss();
+                    if (item < 0 || item >= len) {
+                        Utils.errMsg(HeartNotesActivity.this,
+                                "Invalid item");
+                        return;
                     }
+                    // Confirm the user wants to delete all the current data
+                    new AlertDialog.Builder(HeartNotesActivity.this)
+                            .setIcon(android.R.drawable.ic_dialog_alert)
+                            .setTitle(R.string.confirm)
+                            .setMessage(R.string.delete_prompt)
+                            .setPositiveButton(R.string.ok,
+                                    (dialog1, which) -> {
+                                        dialog1.dismiss();
+                                        restoreData(children.get(item).uri);
+                                    })
+                            .setNegativeButton(R.string.cancel, null)
+                            .show();
+                });
+        AlertDialog alert = builder.create();
+        alert.show();
+    }
+
+    /**
+     * Does the preliminary checking for restoring the database, prompts if
+     * it is OK to delete the current one, and call restoreDatabase to actually
+     * do the replace.
+     */
+    private void checkReplaceDatabase() {
+        Log.d(TAG, "checkReplaceDatabase");
+        // Find the .db files in the data directory
+        SharedPreferences prefs = getPreferences(MODE_PRIVATE);
+        String treeUriStr = prefs.getString(PREF_TREE_URI, null);
+        if (treeUriStr == null) {
+            Utils.errMsg(this, "There is no tree Uri set");
+            return;
+        }
+        Uri treeUri = Uri.parse(treeUriStr);
+        final List<UriData> children = getChildren(treeUri, ".db");
+        final int len = children.size();
+        if (len == 0) {
+            Utils.errMsg(this, "There are no .db files in the data directory");
+            return;
+        }
+        // Sort them by date with newest first
+        Collections.sort(children,
+                (data1, data2) -> Long.compare(data2.modifiedTime,
+                        data1.modifiedTime));
+
+        // Prompt for the file to use
+        final CharSequence[] items = new CharSequence[children.size()];
+        String displayName;
+        UriData uriData;
+        for (int i = 0; i < len; i++) {
+            uriData = children.get(i);
+            displayName = uriData.displayName;
+            if (displayName == null) {
+                displayName = uriData.uri.getLastPathSegment();
+            }
+            items[i] = displayName;
+        }
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(getText(R.string.select_replace_database));
+        builder.setSingleChoiceItems(items, 0,
+                (dialog, item) -> {
+                    dialog.dismiss();
+                    if (item < 0 || item >= len) {
+                        Utils.errMsg(HeartNotesActivity.this,
+                                "Invalid item");
+                        return;
+                    }
+                    // Confirm the user wants to delete all the current data
+                    new AlertDialog.Builder(HeartNotesActivity.this)
+                            .setIcon(android.R.drawable.ic_dialog_alert)
+                            .setTitle(R.string.confirm)
+                            .setMessage(R.string.delete_prompt)
+                            .setPositiveButton(R.string.ok,
+                                    (dialog1, which) -> {
+                                        dialog1.dismiss();
+                                        Log.d(TAG, "Calling replaceDatabase: " +
+                                                "uri="
+                                                + children.get(item).uri);
+                                        replaceDatabase(children.get(item).uri);
+                                    })
+                            .setNegativeButton(R.string.cancel, null)
+                            .show();
                 });
         AlertDialog alert = builder.create();
         alert.show();
@@ -670,6 +690,65 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
     }
 
     /**
+     * Replaces the database without prompting.
+     *
+     * @param uri The Uri.
+     */
+    private void replaceDatabase(Uri uri) {
+        Log.d(TAG, "replaceDatabase: uri=" + uri.getLastPathSegment());
+        if (uri == null) {
+            Log.d(TAG, this.getClass().getSimpleName()
+                    + "replaceDatabase: Source database is null");
+            Utils.errMsg(this, "Source database is null");
+            return;
+        }
+        String lastSeg = uri.getLastPathSegment();
+        if (!UriUtils.exists(this, uri)) {
+            String msg = "Source database does not exist " + lastSeg;
+            Log.d(TAG, this.getClass().getSimpleName()
+                    + "replaceDatabase: " + msg);
+            Utils.errMsg(this, msg);
+            return;
+        }
+        // Copy the data base to app storage
+        File dest = null;
+        try {
+            String destFileName = UriUtils.getFileNameFromUri(uri);
+            dest = new File(getExternalFilesDir(null), destFileName);
+            dest.createNewFile();
+            ParcelFileDescriptor pfd = getContentResolver().
+                    openFileDescriptor(uri, "rw");
+            try (FileChannel in =
+                         new FileInputStream(pfd.getFileDescriptor()).getChannel();
+                 FileChannel out =
+                         new FileOutputStream(dest).getChannel()) {
+                out.transferFrom(in, 0, in.size());
+            } catch (Exception ex) {
+                String msg = "Error copying source database from "
+                        + uri.getLastPathSegment() + " to "
+                        + dest.getPath();
+                Log.e(TAG, msg, ex);
+                Utils.excMsg(this, msg, ex);
+            }
+        } catch (Exception ex) {
+            String msg = "Error getting source database" + uri;
+            Log.e(TAG, msg, ex);
+            Utils.excMsg(this, msg, ex);
+        }
+        try {
+            // Replace (Use null for default alias)
+            mDbAdapter.replaceDatabase(dest.getPath(), null);
+            refresh();
+            Utils.infoMsg(this,
+                    "Restored database from " + uri.getLastPathSegment());
+        } catch (Exception ex) {
+            String msg = "Error replacing data from " + dest.getPath();
+            Log.e(TAG, msg, ex);
+            Utils.excMsg(this, msg, ex);
+        }
+    }
+
+    /**
      * Bring up a dialog to change the mFilter order.
      */
     private void setFilter() {
@@ -680,22 +759,20 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle(getText(R.string.filter_title));
         builder.setSingleChoiceItems(items, mFilter,
-                new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int item) {
-                        dialog.dismiss();
-                        if (item < 0 || item >= filters.length) {
-                            Utils.errMsg(HeartNotesActivity.this,
-                                    "Invalid mFilter");
-                            mFilter = 0;
-                        } else {
-                            mFilter = item;
-                        }
-                        SharedPreferences.Editor editor =
-                                getPreferences(MODE_PRIVATE).edit();
-                        editor.putInt(PREF_FILTER, mFilter);
-                        editor.apply();
-                        refresh();
+                (dialog, item) -> {
+                    dialog.dismiss();
+                    if (item < 0 || item >= filters.length) {
+                        Utils.errMsg(HeartNotesActivity.this,
+                                "Invalid mFilter");
+                        mFilter = 0;
+                    } else {
+                        mFilter = item;
                     }
+                    SharedPreferences.Editor editor =
+                            getPreferences(MODE_PRIVATE).edit();
+                    editor.putInt(PREF_FILTER, mFilter);
+                    editor.apply();
+                    refresh();
                 });
         AlertDialog alert = builder.create();
         alert.show();
@@ -712,20 +789,18 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
         builder.setTitle(getText(R.string.sort_order_item));
         builder.setSingleChoiceItems(items,
                 mSortOrder.equals(SORT_ASCENDING) ? 0 : 1,
-                new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int item) {
-                        dialog.dismiss();
-                        if (item == 0) {
-                            mSortOrder = SORT_ASCENDING;
-                        } else {
-                            mSortOrder = SORT_DESCENDING;
-                        }
-                        SharedPreferences.Editor editor =
-                                getPreferences(MODE_PRIVATE).edit();
-                        editor.putString(PREF_SORT_ORDER, mSortOrder);
-                        editor.apply();
-                        refresh();
+                (dialog, item) -> {
+                    dialog.dismiss();
+                    if (item == 0) {
+                        mSortOrder = SORT_ASCENDING;
+                    } else {
+                        mSortOrder = SORT_DESCENDING;
                     }
+                    SharedPreferences.Editor editor =
+                            getPreferences(MODE_PRIVATE).edit();
+                    editor.putString(PREF_SORT_ORDER, mSortOrder);
+                    editor.apply();
+                    refresh();
                 });
         AlertDialog alert = builder.create();
         alert.show();
@@ -782,7 +857,7 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
      * Gets a new cursor and starts managing it.
      */
     private void refresh() {
-        // Initialize the list view mAapter
+        // Initialize the mListAdapter
         mListAdapter = new CustomListAdapter();
         mListView.setAdapter(mListAdapter);
         positionListView(mListViewToEnd);
@@ -850,8 +925,6 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
         private int indexDate;
         private int indexCount;
         private int indexTotal;
-        // private int indexDateMod;
-        // private int indexEdited;
         private int indexComment;
 
         private CustomListAdapter() {
@@ -942,8 +1015,6 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
 
         @Override
         public View getView(int i, View view, ViewGroup viewGroup) {
-            // // DEBUG
-            // Log.d(TAG, "getView: " + i);
             ViewHolder viewHolder;
             // General ListView optimization code.
             if (view == null) {
@@ -969,7 +1040,7 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
     }
 
     /**
-     * Convience class for managing views for a ListView row.
+     * Convenience class for managing views for a ListView row.
      */
     private static class ViewHolder {
         TextView title;
