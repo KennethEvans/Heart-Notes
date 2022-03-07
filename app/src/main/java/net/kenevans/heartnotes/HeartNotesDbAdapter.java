@@ -28,7 +28,7 @@ public class HeartNotesDbAdapter implements IConstants {
     /**
      * Database creation SQL statement
      */
-    private static final String DB_CREATE = "create table " + DB_TABLE
+    private static final String DB_CREATE = "create table " + DB_DATA_TABLE
             + " (_id integer primary key autoincrement, " + COL_DATE
             + " integer not null, " + COL_DATEMOD + " integer not null, "
             + COL_COUNT + " integer not null, " + COL_TOTAL
@@ -114,7 +114,7 @@ public class HeartNotesDbAdapter implements IConstants {
         values.put(COL_COMMENT, comment);
         values.put(COL_DATE, date);
 
-        return mDb.insert(DB_TABLE, null, values);
+        return mDb.insert(DB_DATA_TABLE, null, values);
     }
 
     /**
@@ -124,14 +124,14 @@ public class HeartNotesDbAdapter implements IConstants {
      * @return true if deleted, false otherwise
      */
     public boolean deleteData(long rowId) {
-        return mDb.delete(DB_TABLE, COL_ID + "=" + rowId, null) > 0;
+        return mDb.delete(DB_DATA_TABLE, COL_ID + "=" + rowId, null) > 0;
     }
 
     /**
      * Delete all the data and recreate the table.
      */
-    public void recreateTable() {
-        mDb.execSQL("DROP TABLE IF EXISTS " + DB_TABLE);
+    public void recreateDataTable() {
+        mDb.execSQL("DROP TABLE IF EXISTS " + DB_DATA_TABLE);
         mDb.execSQL(DB_CREATE);
     }
 
@@ -144,7 +144,7 @@ public class HeartNotesDbAdapter implements IConstants {
         if (mDb == null) {
             return null;
         }
-        return mDb.query(DB_TABLE, new String[]{COL_ID, COL_DATE,
+        return mDb.query(DB_DATA_TABLE, new String[]{COL_ID, COL_DATE,
                         COL_DATEMOD, COL_COUNT, COL_TOTAL, COL_EDITED,
                         COL_COMMENT},
                 filter, null, null, null, sortOrder);
@@ -158,7 +158,7 @@ public class HeartNotesDbAdapter implements IConstants {
      * @throws SQLException if entry could not be found/retrieved
      */
     public Cursor fetchData(long rowId) throws SQLException {
-        Cursor mCursor = mDb.query(true, DB_TABLE, new String[]{COL_ID,
+        Cursor mCursor = mDb.query(true, DB_DATA_TABLE, new String[]{COL_ID,
                         COL_DATE, COL_DATEMOD, COL_COUNT, COL_TOTAL, COL_EDITED,
                         COL_COMMENT}, COL_ID + "=" + rowId, null, null, null,
                 null,
@@ -190,7 +190,7 @@ public class HeartNotesDbAdapter implements IConstants {
         values.put(COL_EDITED, edited);
         values.put(COL_COMMENT, comment);
 
-        return mDb.update(DB_TABLE, values, COL_ID + "=" + rowId, null) > 0;
+        return mDb.update(DB_DATA_TABLE, values, COL_ID + "=" + rowId, null) > 0;
     }
 
     /**
@@ -203,13 +203,13 @@ public class HeartNotesDbAdapter implements IConstants {
     public void replaceDatabase(String newFileName, String alias) {
         if (alias == null) alias = "TEMP_DB";
         // Clear the working database
-        recreateTable();
+        recreateDataTable();
         // Attach the new database
         mDb.execSQL("ATTACH DATABASE '" + newFileName
                 + "' AS " + alias);
         // Copy the data
-        mDb.execSQL("INSERT INTO " + DB_TABLE + " SELECT * FROM "
-                + alias + "." + DB_TABLE);
+        mDb.execSQL("INSERT INTO " + DB_DATA_TABLE + " SELECT * FROM "
+                + alias + "." + DB_DATA_TABLE);
         // Detach the new database
         mDb.execSQL("DETACH DATABASE " + alias);
     }
@@ -236,7 +236,7 @@ public class HeartNotesDbAdapter implements IConstants {
             // the version
             Log.w(TAG, "Upgrading database from version " + oldVersion + " to "
                     + newVersion + ", which will destroy all old data");
-            db.execSQL("DROP TABLE IF EXISTS " + DB_TABLE);
+            db.execSQL("DROP TABLE IF EXISTS " + DB_DATA_TABLE);
             onCreate(db);
         }
     }

@@ -47,7 +47,7 @@ public interface IConstants {
      * /**
      * Simple name of the table.
      */
-    String DB_TABLE = "data";
+    String DB_DATA_TABLE = "data";
     /**
      * The database version
      */

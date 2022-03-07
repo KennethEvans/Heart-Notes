@@ -277,7 +277,7 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
         // Use -1 for the COL_ID to indicate it is new
         i.putExtra(COL_ID, -1L);
         startActivityForResult(i, REQ_CREATE);
-     }
+    }
 
     /**
      * Show the help.
@@ -488,7 +488,8 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
             return;
         }
         Uri treeUri = Uri.parse(treeUriStr);
-        final List<UriData> children = getChildren(treeUri, ".txt");
+        final List<UriUtils.UriData> children =
+                UriUtils.getChildren(this, treeUri, ".txt");
         final int len = children.size();
         if (len == 0) {
             Utils.errMsg(this, "There are no .txt files in the data directory");
@@ -502,7 +503,7 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
         // Prompt for the file to use
         final CharSequence[] items = new CharSequence[children.size()];
         String displayName;
-        UriData uriData;
+        UriUtils.UriData uriData;
         for (int i = 0; i < len; i++) {
             uriData = children.get(i);
             displayName = uriData.displayName;
@@ -553,7 +554,8 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
             return;
         }
         Uri treeUri = Uri.parse(treeUriStr);
-        final List<UriData> children = getChildren(treeUri, ".db");
+        final List<UriUtils.UriData> children =
+                UriUtils.getChildren(this, treeUri, ".db");
         final int len = children.size();
         if (len == 0) {
             Utils.errMsg(this, "There are no .db files in the data directory");
@@ -567,7 +569,7 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
         // Prompt for the file to use
         final CharSequence[] items = new CharSequence[children.size()];
         String displayName;
-        UriData uriData;
+        UriUtils.UriData uriData;
         for (int i = 0; i < len; i++) {
             uriData = children.get(i);
             displayName = uriData.displayName;
@@ -624,7 +626,7 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
 //            }
 
             // Delete all the data and recreate the table
-            mDbAdapter.recreateTable();
+            mDbAdapter.recreateDataTable();
 
             // Read the file and get the data to restore
             long dateMod = new Date().getTime();
@@ -804,53 +806,6 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
                 });
         AlertDialog alert = builder.create();
         alert.show();
-    }
-
-    /**
-     * Gets a List of the children of the given document Uri that match the
-     * given extension.
-     *
-     * @param uri A document Uri.
-     * @param ext The extension.
-     * @return The list.
-     */
-    public List<UriData> getChildren(Uri uri, String ext) {
-        ContentResolver contentResolver = this.getContentResolver();
-        Uri childrenUri =
-                DocumentsContract.buildChildDocumentsUriUsingTree(uri,
-                        DocumentsContract.getTreeDocumentId(uri));
-        List<UriData> children = new ArrayList<>();
-        try (Cursor cursor = contentResolver.query(childrenUri,
-                new String[]{
-                        DocumentsContract.Document.COLUMN_DOCUMENT_ID,
-                        DocumentsContract.Document.COLUMN_LAST_MODIFIED,
-                        DocumentsContract.Document.COLUMN_DISPLAY_NAME,
-                },
-                null,
-                null,
-                null)) {
-            String documentId;
-            Uri documentUri;
-            long modifiedTime;
-            String displayName;
-            while (cursor.moveToNext()) {
-                documentId = cursor.getString(0);
-                documentUri = DocumentsContract.buildDocumentUriUsingTree(uri,
-                        documentId);
-                if (documentUri == null) continue;
-                modifiedTime = cursor.getLong(1);
-                displayName = cursor.getString(2);
-                String name = documentUri.getLastPathSegment();
-                if (name != null) {
-                    if (name.toLowerCase().endsWith(ext)) {
-                        children.add(new UriData(documentUri, modifiedTime,
-                                displayName));
-                    }
-                }
-            }
-        }
-        // Do nothing
-        return children;
     }
 
     /**
@@ -1045,20 +1000,5 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
     private static class ViewHolder {
         TextView title;
         TextView subTitle;
-    }
-
-    /**
-     * Convenience class for managing Uri information.
-     */
-    private static class UriData {
-        final public Uri uri;
-        final public long modifiedTime;
-        final public String displayName;
-
-        UriData(Uri uri, long modifiedTime, String displayName) {
-            this.uri = uri;
-            this.modifiedTime = modifiedTime;
-            this.displayName = displayName;
-        }
     }
 }
