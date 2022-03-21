@@ -37,7 +37,7 @@
 <p>Saves the database as a text file to the Data directory. The name is of the form Heart Notes-yyyy-MM-dd-HHmmss.txt, and the values correspond to the time it is saved. The file is intended to be formatted so it can be viewed and printed without editing. It can also be read as a CSV file, tab delimited. Note that it is better to not use tabs and carriage returns in the note itself. It interferes with restoring the database from one of the text files or using it as a CSV file. The lines are of the form:</p>
 <pre>2/60 	Jun 03, 2012 23:00:00 -0500 	After working out.</pre>
 <h4>Save Database </h4>
-<p>Saves the current database itself in the form Heart Notes-yyyy-MM-dd-HHmmss.db. This database can be moved to /primary/Android/data/net.kenevans.heartnotes/Files to become the database used by Heart Notesr. (&quot;primary&quot; usually has a name like /storage/emulated/0.) This is an app-specific directory, and anything in it will be lost if the app is uninstalled. It will have to be renamed to HeartNotes.db. There will also be a HeartNotes.db-journal file there. This is a temporary file. You should be able to ignore it. It will be recreated as necessry. Note that you can open either the saved or the used databse in external SQLite browsers on other platforms, such as Windows, to do more with it than is done in the app. </p>
+<p>Saves the current database itself in the form Heart Notes-yyyy-MM-dd-HHmmss.db. This database can be restored with the Replace Data base option. It can also be replaced from a saved text file with the Restore option.</p>
 <h4>Restore</h4>
 <p>Restores the database from one of the saved text files. Since the editing information is not saved, it will be set to the date the database was restored. </p>
 <h4>Replace Database</h4>
