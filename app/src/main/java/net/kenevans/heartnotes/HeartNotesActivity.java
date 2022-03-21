@@ -71,6 +71,14 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        // Capture global exceptions
+        Thread.setDefaultUncaughtExceptionHandler((paramThread,
+                                                   paramThrowable) -> {
+            Log.e(TAG, "Unexpected exception :", paramThrowable);
+            // Any non-zero exit code
+            System.exit(2);
+        });
+
         setContentView(R.layout.list_view);
         mListView = findViewById(R.id.mainListView);
         mListView.setOnItemClickListener((parent, view, position, id) -> onListItemClick(position, id));

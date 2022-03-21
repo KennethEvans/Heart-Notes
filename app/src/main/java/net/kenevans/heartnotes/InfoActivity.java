@@ -23,6 +23,8 @@ package net.kenevans.heartnotes;
 
 import android.os.Bundle;
 import androidx.appcompat.app.AppCompatActivity;
+
+import android.util.Log;
 import android.view.KeyEvent;
 import android.webkit.WebView;
 import android.widget.Toast;
@@ -39,6 +41,14 @@ public class InfoActivity extends AppCompatActivity implements IConstants {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        // Capture global exceptions
+        Thread.setDefaultUncaughtExceptionHandler((paramThread,
+                                                   paramThrowable) -> {
+            Log.e(TAG, "Unexpected exception :", paramThrowable);
+            // Any non-zero exit code
+            System.exit(2);
+        });
+
         setContentView(R.layout.info);
 
         mWebView = findViewById(R.id.webview);

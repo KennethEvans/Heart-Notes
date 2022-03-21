@@ -64,6 +64,14 @@ public class DataEditActivity extends AppCompatActivity implements IConstants {
     protected void onCreate(Bundle savedInstanceState) {
         Log.v(TAG, this.getClass().getSimpleName() + ": onCreate");
         super.onCreate(savedInstanceState);
+        // Capture global exceptions
+        Thread.setDefaultUncaughtExceptionHandler((paramThread,
+                                                   paramThrowable) -> {
+            Log.e(TAG, "Unexpected exception :", paramThrowable);
+            // Any non-zero exit code
+            System.exit(2);
+        });
+
         // The default state is cancelled and won't be changed until the users
         // selects one of the buttons
         state = State.CANCELLED;
