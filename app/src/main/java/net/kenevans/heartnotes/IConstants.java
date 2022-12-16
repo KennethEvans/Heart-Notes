@@ -35,11 +35,6 @@ public interface IConstants {
     String TAG = "HeartNotes";
 
     /**
-     * Directory on the SD card where the database is stored
-     */
-    String SD_CARD_DB_DIRECTORY = "Heart Notes";
-
-    /**
      * Simple name of the database.
      */
     String DB_NAME = "HeartNotes.db";
@@ -58,6 +53,7 @@ public interface IConstants {
     String PREF_FILTER = "filter";
     String PREF_SORT_ORDER = "sortOrder";
     String PREF_TREE_URI = "tree_uri";
+    String PREF_DO_WEATHER = "do_weather";
 
     // Information
     /**
@@ -106,19 +102,11 @@ public interface IConstants {
     String SORT_DESCENDING = COL_DATE + " DESC";
 
     // Messages
-    /**
-     * Request code for creating new data.
-     */
-    int REQ_CREATE = 0;
-    /**
-     * Request code for editing data.
-     */
-    int REQ_EDIT = 1;
+    int ACCESS_LOCATION_REQ = 2;
     /**
      * Request code for ACTION_OPEN_DOCUMENT_TREE.
      */
     int REQ_GET_TREE = 10;
-
 
     /**
      * The static long formatter to use for formatting dates.
@@ -145,7 +133,7 @@ public interface IConstants {
      */
     String OPEN_WEATHER_MAP_API =
             "https://api.openweathermap.org/data/2.5/onecall" +
-                    "?lat={%f}&lon={%f}&units=imperial" +
-                    "&exclude={exclude=hourly,daily,minutely}" +
-                    "&appid={%s}";
+                    "?lat=%f&lon=%f&units=imperial" +
+                    "&exclude=exclude=hourly,daily,minutely" +
+                    "&appid=%s";
 }

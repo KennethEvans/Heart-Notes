@@ -21,6 +21,8 @@ import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.TextView;
 
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -36,6 +38,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 
 /**
@@ -65,24 +69,83 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
      */
     private int mFilter = 0;
 
+    // Launcher for PREF_TREE_URI
+    private final ActivityResultLauncher<Intent> openDocumentTreeLauncher =
+            registerForActivityResult(
+                    new ActivityResultContracts.StartActivityForResult(),
+                    result -> {
+                        Log.d(TAG, "openDocumentTreeLauncher: result" +
+                                ".getResultCode()=" + result.getResultCode());
+                        // Find the UID for this application
+                        Log.d(TAG, "URI=" + UriUtils.getApplicationUid(this));
+                        Log.d(TAG,
+                                "Current permissions (initial): "
+                                        + UriUtils.getNPersistedPermissions(this));
+                        try {
+                            if (result.getResultCode() == RESULT_OK &&
+                                    result.getData() != null) {
+                                // Get Uri from Storage Access Framework.
+                                Uri treeUri = result.getData().getData();
+                                SharedPreferences.Editor editor =
+                                        getPreferences(MODE_PRIVATE)
+                                                .edit();
+                                if (treeUri == null) {
+                                    editor.putString(PREF_TREE_URI, null);
+                                    editor.apply();
+                                    Utils.errMsg(this, "Failed to get " +
+                                            "persistent access permissions");
+                                    return;
+                                }
+                                // Persist access permissions.
+                                try {
+                                    this.getContentResolver().takePersistableUriPermission(treeUri,
+                                            Intent.FLAG_GRANT_READ_URI_PERMISSION |
+                                                    Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                                    // Save the current treeUri as PREF_TREE_URI
+                                    editor.putString(PREF_TREE_URI,
+                                            treeUri.toString());
+                                    editor.apply();
+                                    // Trim the persisted permissions
+                                    UriUtils.trimPermissions(this, 1);
+                                } catch (Exception ex) {
+                                    String msg = "Failed to " +
+                                            "takePersistableUriPermission for "
+                                            + treeUri.getPath();
+                                    Utils.excMsg(this, msg, ex);
+                                }
+                                Log.d(TAG,
+                                        "Current permissions (final): "
+                                                + UriUtils.getNPersistedPermissions(this));
+                            }
+                        } catch (Exception ex) {
+                            Log.e(TAG, "Error in openDocumentTreeLauncher: " +
+                                    "startActivityForResult", ex);
+                        }
+                    });
+
+
     /**
      * Called when the activity is first created.
      */
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // Capture global exceptions
-        Thread.setDefaultUncaughtExceptionHandler((paramThread,
-                                                   paramThrowable) -> {
-            Log.e(TAG, "Unexpected exception :", paramThrowable);
-            // Any non-zero exit code
-            System.exit(2);
-        });
+//        // Capture global exceptions
+//        Thread.setDefaultUncaughtExceptionHandler((paramThread,
+//                                                   paramThrowable) -> {
+//            Log.e(TAG, "Unexpected exception :", paramThrowable);
+//            // Any non-zero exit code
+//            System.exit(2);
+//        });
 
-        setContentView(R.layout.list_view);
-        mListView = findViewById(R.id.mainListView);
-        mListView.setOnItemClickListener((parent, view, position, id) -> onListItemClick(position, id));
+        setContentView(R.layout.main);
+        mListView = findViewById(R.id.listview);
+        mListView.setOnItemClickListener((parent, view,
+                                          position, id) -> onListItemClick(position, id));
 
+        FloatingActionButton fab =
+                findViewById(R.id.fab);
+        fab.setOnClickListener(view -> createData());
 
         // Create filters here so getText is available
         filters = new Filter[]{
@@ -199,10 +262,10 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
         final Data data = mListAdapter.getData(position);
         if (data == null) return;
         Log.d(TAG, "data: id=" + data.getId() + " " + data.getComment());
-        Intent i = new Intent(this,
+        Intent intent = new Intent(this,
                 net.kenevans.heartnotes.DataEditActivity.class);
-        i.putExtra(COL_ID, data.getId());
-        startActivityForResult(i, REQ_EDIT);
+        intent.putExtra(COL_ID, data.getId());
+        startActivity(intent);
     }
 
     @Override
@@ -243,8 +306,7 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
         intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION &
                 Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
-//        intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, uriToLoad);
-        startActivityForResult(intent, REQ_GET_TREE);
+        openDocumentTreeLauncher.launch(intent);
     }
 
     /**
@@ -280,11 +342,12 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
     }
 
     private void createData() {
-        Intent i = new Intent(this,
+        Intent intent = new Intent(this,
                 net.kenevans.heartnotes.DataEditActivity.class);
         // Use -1 for the COL_ID to indicate it is new
-        i.putExtra(COL_ID, -1L);
-        startActivityForResult(i, REQ_CREATE);
+        intent.putExtra(COL_ID, -1L);
+        intent.putExtra(PREF_DO_WEATHER, true);
+        startActivity(intent);
     }
 
     /**
@@ -885,10 +948,6 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
     private class CustomListAdapter extends BaseAdapter {
         private final ArrayList<Data> mData;
         private final LayoutInflater mInflator;
-        private int indexDate;
-        private int indexCount;
-        private int indexTotal;
-        private int indexComment;
 
         private CustomListAdapter() {
             super();
@@ -901,12 +960,12 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
                     cursor = mDbAdapter.fetchAllData(filters[mFilter]
                             .selection, mSortOrder);
                     int indexId = cursor.getColumnIndex(COL_ID);
-                    indexDate = cursor.getColumnIndex(COL_DATE);
+                    int indexDate = cursor.getColumnIndex(COL_DATE);
                     // indexDateMod = cursor.getColumnIndex(COL_DATEMOD);
-                    indexCount = cursor.getColumnIndex(COL_COUNT);
-                    indexTotal = cursor.getColumnIndex(COL_TOTAL);
+                    int indexCount = cursor.getColumnIndex(COL_COUNT);
+                    int indexTotal = cursor.getColumnIndex(COL_TOTAL);
                     // indexEdited = cursor.getColumnIndex(COL_EDITED);
-                    indexComment = cursor.getColumnIndex(COL_COMMENT);
+                    int indexComment = cursor.getColumnIndex(COL_COMMENT);
 
                     // Loop over items
                     cursor.moveToFirst();
@@ -993,10 +1052,10 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
             }
 
             Data data = mData.get(i);
-            viewHolder.title.setText(String.format(Locale.US, "%d", data
-                    .getId()) + ": " + data.getCount() +
-                    "/" + data.getTotal() + " at "
-                    + formatDate(data.getDateNum()));
+            viewHolder.title.setText(String.format(Locale.US,
+                    getString(R.string.session_heading),
+                    data.getId(), data.getCount(), data.getTotal(),
+                    formatDate(data.getDateNum())));
             viewHolder.subTitle.setText(data.getComment());
             return view;
         }

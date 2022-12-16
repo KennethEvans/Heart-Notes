@@ -1,8 +1,9 @@
 package net.kenevans.heartnotes;
 
 import android.Manifest;
+import android.app.Activity;
 import android.app.AlertDialog;
-import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.os.AsyncTask;
@@ -12,10 +13,10 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
-import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 
+import java.lang.ref.WeakReference;
 import java.text.ParseException;
 import java.util.Date;
 
@@ -27,10 +28,6 @@ import androidx.core.app.ActivityCompat;
  * Manages editing a set of data. Done similarly to the Notes example.
  */
 public class DataEditActivity extends AppCompatActivity implements IConstants {
-    /**
-     * Request code for ACCESS_FINE_LOCATION.
-     */
-    private static final int ACCESS_LOCATION_REQ = 1;
 
     private HeartNotesDbAdapter mDbAdapter;
     private EditText mCountText;
@@ -87,6 +84,17 @@ public class DataEditActivity extends AppCompatActivity implements IConstants {
 
         mEditedText.setMovementMethod(new ScrollingMovementMethod());
 
+        // Automatically insert weather if new
+        boolean doWeather = false;
+        Intent intent = getIntent();
+        if (intent != null && intent.getExtras() != null) {
+            doWeather = intent.getExtras().getBoolean(PREF_DO_WEATHER);
+        }
+
+        if (doWeather) {
+            insertWeather();
+        }
+
         mRowId = (savedInstanceState == null) ? null
                 : (Long) savedInstanceState.getSerializable(COL_ID);
         if (mRowId == null) {
@@ -103,71 +111,57 @@ public class DataEditActivity extends AppCompatActivity implements IConstants {
 
         // Save
         Button button = findViewById(R.id.save);
-        button.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View view) {
-                // Debug
-                Log.v(TAG, "Save Button");
-                state = State.SAVED;
-                setResult(RESULT_OK);
-                finish();
-            }
+        button.setOnClickListener(view -> {
+            // Debug
+            Log.v(TAG, "Save Button");
+            state = State.SAVED;
+            setResult(RESULT_OK);
+            finish();
         });
 
         // Cancel
         button = findViewById(R.id.cancel);
-        button.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View view) {
-                // Debug
-                Log.v(TAG, "Cancel Button");
-                String msg = DataEditActivity.this.getString(
-                        R.string.note_cancel_prompt);
-                new AlertDialog.Builder(DataEditActivity.this)
-                        .setIcon(android.R.drawable.ic_dialog_alert)
-                        .setTitle(R.string.confirm)
-                        .setMessage(msg)
-                        .setPositiveButton(R.string.ok,
-                                new DialogInterface.OnClickListener() {
-                                    @Override
-                                    public void onClick(DialogInterface dialog,
-                                                        int which) {
-                                        dialog.dismiss();
-                                        state = State.CANCELLED;
-                                        setResult(RESULT_CANCELED);
-                                        finish();
-                                    }
-                                })
-                        .setNegativeButton(R.string.continue_editing_label,
-                                null).show();
-            }
+        button.setOnClickListener(view -> {
+            // Debug
+            Log.v(TAG, "Cancel Button");
+            String msg = DataEditActivity.this.getString(
+                    R.string.note_cancel_prompt);
+            new AlertDialog.Builder(DataEditActivity.this)
+                    .setIcon(android.R.drawable.ic_dialog_alert)
+                    .setTitle(R.string.confirm)
+                    .setMessage(msg)
+                    .setPositiveButton(R.string.ok,
+                            (dialog, which) -> {
+                                dialog.dismiss();
+                                state = State.CANCELLED;
+                                setResult(RESULT_CANCELED);
+                                finish();
+                            })
+                    .setNegativeButton(R.string.continue_editing_label,
+                            null).show();
         });
         populateFields();
 
         // Delete
         button = findViewById(R.id.delete);
-        button.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View view) {
-                // Debug
-                Log.v(TAG, "Delete Button");
-                String msg = DataEditActivity.this.getString(
-                        R.string.note_delete_prompt);
-                new AlertDialog.Builder(DataEditActivity.this)
-                        .setIcon(android.R.drawable.ic_dialog_alert)
-                        .setTitle(R.string.confirm)
-                        .setMessage(msg)
-                        .setPositiveButton(R.string.ok,
-                                new DialogInterface.OnClickListener() {
-                                    @Override
-                                    public void onClick(DialogInterface dialog,
-                                                        int which) {
-                                        dialog.dismiss();
-                                        state = State.DELETED;
-                                        setResult(RESULT_OK);
-                                        finish();
-                                    }
-                                })
-                        .setNegativeButton(R.string.continue_editing_label,
-                                null).show();
-            }
+        button.setOnClickListener(view -> {
+            // Debug
+            Log.v(TAG, "Delete Button");
+            String msg = DataEditActivity.this.getString(
+                    R.string.note_delete_prompt);
+            new AlertDialog.Builder(DataEditActivity.this)
+                    .setIcon(android.R.drawable.ic_dialog_alert)
+                    .setTitle(R.string.confirm)
+                    .setMessage(msg)
+                    .setPositiveButton(R.string.ok,
+                            (dialog, which) -> {
+                                dialog.dismiss();
+                                state = State.DELETED;
+                                setResult(RESULT_OK);
+                                finish();
+                            })
+                    .setNegativeButton(R.string.continue_editing_label,
+                            null).show();
         });
         populateFields();
     }
@@ -217,6 +211,8 @@ public class DataEditActivity extends AppCompatActivity implements IConstants {
     // This currently should not be called as not using requestPermission
     public void onRequestPermissionsResult(int requestCode, @NonNull String[]
             permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions,
+                grantResults);
         Log.d(TAG, this.getClass().getSimpleName() + ": " +
                 "onRequestPermissionsResult:" + " permissions=" +
                 permissions[0]);
@@ -361,11 +357,11 @@ public class DataEditActivity extends AppCompatActivity implements IConstants {
      */
     private static class GetWeatherTask extends AsyncTask<Void, Void, Boolean> {
         private String weatherString;
-        private DataEditActivity activity;
+        private final WeakReference<Activity> activityRef;
 
         public GetWeatherTask(DataEditActivity activity) {
             super();
-            this.activity = activity;
+            activityRef = new WeakReference<>(activity);
         }
 
         @Override
@@ -377,7 +373,7 @@ public class DataEditActivity extends AppCompatActivity implements IConstants {
             // Up the priority
             Thread.currentThread().setPriority(Thread.MAX_PRIORITY);
             weatherString =
-                    LocationUtils.getOpenWeather(activity);
+                    LocationUtils.getOpenWeather(activityRef);
             return true;
         }
 
@@ -389,10 +385,9 @@ public class DataEditActivity extends AppCompatActivity implements IConstants {
             // if (isCancelled()) {
             // updateTask = null;
             // Log.d(TAG, this.getClass().getSimpleName()
-            // + ": onPostExecute: isCancelled");
-            // return;
-            // }
             updateTask = null;
+            DataEditActivity activity = (DataEditActivity) activityRef.get();
+
             if (weatherString == null) {
                 Utils.errMsg(activity, "Failed to get weather");
                 if (activity != null) {

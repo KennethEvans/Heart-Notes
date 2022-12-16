@@ -1,14 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-	android:orientation="vertical"
-	android:layout_width="fill_parent" 
-    android:layout_height="fill_parent"
-	android:paddingLeft="8dip"
-	android:paddingRight="8dip">
+<androidx.constraintlayout.widget.ConstraintLayout
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	xmlns:app="http://schemas.android.com/apk/res-auto"
+	xmlns:tools="http://schemas.android.com/tools"
+	android:layout_width="match_parent"
+	android:layout_height="match_parent"
+	tools:context=".HeartNotesActivity"
+	tools:ignore="HardcodedText">
 
-	<ListView android:id="@android:id/list"
-	    android:layout_width="fill_parent" 
-	    android:layout_height="0dip"
-	    android:layout_weight="1"
-	    android:drawSelectorOnTop="false"/>
-</LinearLayout>
+	<com.google.android.material.floatingactionbutton.FloatingActionButton
+		android:id="@+id/fab"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:layout_gravity="bottom|end"
+		android:layout_marginEnd="16dp"
+		android:layout_marginBottom="16dp"
+		android:background="#fff0d424"
+		app:backgroundTint="#fff0d424"
+		app:backgroundTintMode="src_over"
+		app:tint="#ff000000"
+		app:srcCompat="@android:drawable/ic_input_add"
+		app:fabSize="normal"
+		app:layout_constraintBottom_toBottomOf="parent"
+		app:layout_constraintEnd_toEndOf="parent" />
+
+	<ListView
+		android:id="@+id/listview"
+		app:layout_behavior="com.google.android.material.appbar.AppBarLayout$ScrollingViewBehavior"
+		android:layout_width="match_parent"
+		android:layout_height="match_parent" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

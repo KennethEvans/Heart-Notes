@@ -22,28 +22,23 @@
 package net.kenevans.heartnotes;
 
 import android.Manifest;
+import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.location.Address;
-import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationManager;
-import android.preference.PreferenceManager;
 import android.util.Log;
 
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.InputStreamReader;
+import java.lang.ref.WeakReference;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Date;
-import java.util.List;
 import java.util.Locale;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import androidx.core.app.ActivityCompat;
 
@@ -52,14 +47,6 @@ import androidx.core.app.ActivityCompat;
  * information
  */
 public class LocationUtils implements IConstants {
-    private static final String WUND_URL_PREFIX = "http://m.wund" +
-            ".com/cgi-bin/findweather/getForecast?query=";
-    private static final String OPEN_WEATHER_MAP_API =
-            "https://api.openweathermap.org/data/2.5/onecall" +
-                    "?lat=%f&lon=%f&units=imperial" +
-                    "&exclude=exclude=hourly,daily,minutely" +
-                    "&appid=%s";
-
     /**
      * Gets the current location first trying GPS then Network.
      *
@@ -88,56 +75,23 @@ public class LocationUtils implements IConstants {
     }
 
     /**
-     * Finds an address from the given latitude and longitude.  Needs a
-     * project with a billing account and the Geocoding API enabled.
-     * See https://developers.google.com/maps/gmp-get-started.
-     *
-     * @param context The context.
-     * @param lat     The latitude.
-     * @param lon     The longitude.
-     * @return The address.
-     */
-    public static String getAddressFromLocation(Context context, double lat,
-                                                double lon) {
-        String address = "";
-        String addrLine;
-        Geocoder geoCoder = new Geocoder(context, Locale.getDefault());
-        try {
-            List<Address> addresses = geoCoder.getFromLocation(lat, lon, 1);
-            if (addresses.size() > 0) {
-                for (int i = 0; i < addresses.get(0).getMaxAddressLineIndex()
-                        ; i++) {
-                    addrLine = addresses.get(0).getAddressLine(i);
-                    Log.d(TAG, "  addrLine=" + addrLine);
-                    if (addrLine != null) {
-                        address += addrLine + " ";
-                    }
-                }
-            }
-        } catch (IOException ex) {
-            // Do nothing
-        }
-        return address;
-    }
-
-    /**
      * Gets a weather String for OpenWeatherMap.
      *
-     * @param context The context.
+     * @param activityRef The WeakReference to the activity
      * @return The weather String.
      */
-    public static String getOpenWeather(Context context) {
+    public static String getOpenWeather(WeakReference<Activity> activityRef) {
         Log.d(TAG, "LocationUtils " + ".getOpenWeather: ");
-        if (ActivityCompat.checkSelfPermission(context,
+        if (ActivityCompat.checkSelfPermission(activityRef.get(),
                 Manifest.permission.ACCESS_FINE_LOCATION) !=
                 PackageManager.PERMISSION_GRANTED &&
-                ActivityCompat.checkSelfPermission(context,
+                ActivityCompat.checkSelfPermission(activityRef.get(),
                         Manifest.permission.ACCESS_COARSE_LOCATION) !=
                         PackageManager.PERMISSION_GRANTED) {
             return null;
         }
         // Get the location
-        Location location = findLocation(context);
+        Location location = findLocation(activityRef.get());
         if (location == null) {
             Log.d(TAG, "  location=null");
             return "Failed to find location for weather.";
@@ -146,7 +100,7 @@ public class LocationUtils implements IConstants {
                 "  location=" + location.getLatitude() + ","
                         + location.getLongitude());
         // Get the OpenWeather key
-        SharedPreferences prefs = context.getSharedPreferences(
+        SharedPreferences prefs = activityRef.get().getSharedPreferences(
                 "HeartNotesActivity", Context.MODE_PRIVATE);
         String key = prefs.getString(PREF_OPENWEATHER_KEY, null);
         if (key == null || key.isEmpty()) {
@@ -231,131 +185,6 @@ public class LocationUtils implements IConstants {
         }
         if (first) info += "No data found";
         return info;
-    }
-
-    /**
-     * Gets the weather using Weather Underground. Not working in 2020.
-     *
-     * @param context The context.
-     * @return String[3] as {temperature, humidity, city} or null on failure.
-     */
-    public static String[] getWundWeather(Context context) {
-        Log.d(TAG, "LocationUtils " + ".getWundWeather: ");
-        if (ActivityCompat.checkSelfPermission(context,
-                Manifest.permission.ACCESS_FINE_LOCATION) !=
-                PackageManager.PERMISSION_GRANTED &&
-                ActivityCompat.checkSelfPermission(context,
-                        Manifest.permission.ACCESS_COARSE_LOCATION) !=
-                        PackageManager.PERMISSION_GRANTED) {
-            return null;
-        }
-        Location location = findLocation(context);
-        if (location == null) {
-            Log.d(TAG, "  location=null");
-            return null;
-        }
-        Log.d(TAG,
-                "  location=" + location.getLatitude() + ","
-                        + location.getLongitude());
-        return getWundTemperatureHumidityFromLocation(location);
-    }
-
-    /**
-     * Finds the temperature, humidity, and city for the given address. Uses
-     * "https://www.google.com/ig/api?weather=". Must not be called from the
-     * main thread.
-     *
-     * @param location The Location.
-     * @return String[3] as {temperature, humidity, city} or null on failure.
-     */
-    public static String[] getWundTemperatureHumidityFromLocation(
-            Location location) {
-        // Parse the contents
-        String temp = "";
-        String humidity = "";
-        String city = "";
-        boolean tempFound = false;
-        boolean humidityFound = false;
-        boolean cityFound = false;
-
-        try {
-            String queryString = WUND_URL_PREFIX + location.getLatitude() + ","
-                    + location.getLongitude();
-            // Debug (Homer Glen)
-            // queryString = WUND_URL_PREFIX + 41.593666 + "," + -87.946309;
-            // queryString = WUND_URL_PREFIX + "homer+glen%2C+il";
-            Log.d(TAG, "  queryString=" + queryString);
-            URL url = new URL(queryString);
-
-            BufferedReader br = new BufferedReader(new InputStreamReader(
-                    url.openStream()));
-            StringBuilder sb = new StringBuilder();
-
-            // Concatenate the lines into a single string
-            String line;
-            while ((line = br.readLine()) != null) {
-                sb.append(line);
-                // Stop when the line contains this
-                if (line.contains("<td>Conditions</td>")) {
-                    break;
-                }
-            }
-            br.close();
-            String contents = sb.toString();
-
-            String regex = "Temperature.*?<b>(.+?)</b>";
-            Pattern pattern = Pattern.compile(regex);
-            Matcher matcher = pattern.matcher(contents);
-            if (matcher.find()) {
-                tempFound = true;
-                temp = matcher.group(1);
-            }
-
-            regex = "Humidity.*?<b>(.+?)%</b>";
-            pattern = Pattern.compile(regex);
-            matcher = pattern.matcher(contents);
-            if (matcher.find()) {
-                humidityFound = true;
-                humidity = matcher.group(1);
-            }
-
-            regex = "Observed.*?<b>(.+?)</b>";
-            pattern = Pattern.compile(regex);
-            matcher = pattern.matcher(contents);
-            if (matcher.find()) {
-                cityFound = true;
-                // Remove the state part
-                // Could be e.g. "Drake Subdivision, Lockport, Illinois"
-
-                // Note that replace does nothing, replaceAll replaces every
-                // thing after all commas, not just the last comma
-                // city = matcher.group(1).replaceAll(",.*?$", "");
-
-                // Do it this way
-                city = matcher.group(1);
-                Log.d(TAG, "full city=|" + city + "|");
-                regex = "(.*),";
-                pattern = Pattern.compile(regex);
-                matcher = pattern.matcher(city);
-                if (matcher.find() && city != null) {
-                    city = matcher.group(1);
-                }
-            }
-        } catch (Exception ex) {
-            Log.d(TAG, "  getWundTemperatureHumidityFromLocation: Exception: "
-                    + ex);
-            // Do nothing
-        }
-
-        String[] vals = new String[3];
-        vals[0] = tempFound ? temp + "?" : "NA";
-        vals[1] = humidityFound ? humidity + "%" : "NA";
-        vals[2] = cityFound ? city : "NA";
-        Log.d(TAG, "tempFound=" + tempFound + " val=" + vals[0]);
-        Log.d(TAG, "humidityFound=" + humidityFound + " val=" + vals[1]);
-        Log.d(TAG, "cityFound=" + cityFound + " val=" + vals[2]);
-
-        return vals;
     }
 
 }
