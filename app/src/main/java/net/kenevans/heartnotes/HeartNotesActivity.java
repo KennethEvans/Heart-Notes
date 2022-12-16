@@ -87,7 +87,9 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
                                 // Get Uri from Storage Access Framework.
                                 Uri treeUri = result.getData().getData();
                                 SharedPreferences.Editor editor =
-                                        getPreferences(MODE_PRIVATE)
+                                        getSharedPreferences(
+                                                "HeartNotesActivity",
+                                                MODE_PRIVATE)
                                                 .edit();
                                 if (treeUri == null) {
                                     editor.putString(PREF_TREE_URI, null);
@@ -156,7 +158,8 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
                         + " = " + COL_TOTAL),};
 
         // Get the preferences here before refresh()
-        SharedPreferences prefs = getPreferences(MODE_PRIVATE);
+        SharedPreferences prefs = getSharedPreferences(MAIN_ACTIVITY,
+                MODE_PRIVATE);
         mFilter = prefs.getInt(PREF_FILTER, 0);
         if (mFilter < 0 || mFilter >= filters.length) {
             mFilter = 0;
@@ -278,7 +281,8 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
             treeUri = intent.getData();
             // Keep them from accumulating
             UriUtils.releaseAllPermissions(this);
-            SharedPreferences.Editor editor = getPreferences(MODE_PRIVATE)
+            SharedPreferences.Editor editor =
+                    getSharedPreferences(MAIN_ACTIVITY, MODE_PRIVATE)
                     .edit();
             if (treeUri != null) {
                 editor.putString(PREF_TREE_URI, treeUri.toString());
@@ -319,7 +323,8 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
         // Set an EditText view to get user input
         final EditText input = new EditText(this);
         // Set it with the current value
-        SharedPreferences prefs = getPreferences(MODE_PRIVATE);
+        SharedPreferences prefs = getSharedPreferences(MAIN_ACTIVITY,
+                MODE_PRIVATE);
         String keyName = prefs.getString(PREF_OPENWEATHER_KEY, null);
         if (keyName != null) {
             input.setText(keyName);
@@ -327,7 +332,8 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
         alert.setView(input);
         alert.setPositiveButton("Ok", (dialog, whichButton) -> {
             String value = input.getText().toString();
-            SharedPreferences.Editor editor = getPreferences(MODE_PRIVATE)
+            SharedPreferences.Editor editor =
+                    getSharedPreferences(MAIN_ACTIVITY, MODE_PRIVATE)
                     .edit();
             editor.putString(PREF_OPENWEATHER_KEY, value);
             editor.apply();
@@ -420,7 +426,8 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
      * Saves the info to the SD card.
      */
     private void saveData() {
-        SharedPreferences prefs = getPreferences(MODE_PRIVATE);
+        SharedPreferences prefs = getSharedPreferences(MAIN_ACTIVITY,
+                MODE_PRIVATE);
         String treeUriStr = prefs.getString(PREF_TREE_URI, null);
         if (treeUriStr == null) {
             Utils.errMsg(this, "There is no data directory set");
@@ -496,7 +503,8 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
     }
 
     private void saveDatabase() {
-        SharedPreferences prefs = getPreferences(MODE_PRIVATE);
+        SharedPreferences prefs = getSharedPreferences(MAIN_ACTIVITY,
+                MODE_PRIVATE);
         String treeUriStr = prefs.getString(PREF_TREE_URI, null);
         if (treeUriStr == null) {
             Utils.errMsg(this, "There is no data directory set");
@@ -552,7 +560,8 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
      */
     private void checkRestore() {
         // Find the .txt files in the data directory
-        SharedPreferences prefs = getPreferences(MODE_PRIVATE);
+        SharedPreferences prefs = getSharedPreferences(MAIN_ACTIVITY,
+                MODE_PRIVATE);
         String treeUriStr = prefs.getString(PREF_TREE_URI, null);
         if (treeUriStr == null) {
             Utils.errMsg(this, "There is no tree Uri set");
@@ -618,7 +627,8 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
     private void checkReplaceDatabase() {
         Log.d(TAG, "checkReplaceDatabase");
         // Find the .db files in the data directory
-        SharedPreferences prefs = getPreferences(MODE_PRIVATE);
+        SharedPreferences prefs = getSharedPreferences(MAIN_ACTIVITY,
+                MODE_PRIVATE);
         String treeUriStr = prefs.getString(PREF_TREE_URI, null);
         if (treeUriStr == null) {
             Utils.errMsg(this, "There is no tree Uri set");
@@ -842,7 +852,7 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
                         mFilter = item;
                     }
                     SharedPreferences.Editor editor =
-                            getPreferences(MODE_PRIVATE).edit();
+                            getSharedPreferences(MAIN_ACTIVITY, MODE_PRIVATE).edit();
                     editor.putInt(PREF_FILTER, mFilter);
                     editor.apply();
                     refresh();
@@ -870,7 +880,7 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
                         mSortOrder = SORT_DESCENDING;
                     }
                     SharedPreferences.Editor editor =
-                            getPreferences(MODE_PRIVATE).edit();
+                            getSharedPreferences(MAIN_ACTIVITY, MODE_PRIVATE).edit();
                     editor.putString(PREF_SORT_ORDER, mSortOrder);
                     editor.apply();
                     refresh();

@@ -35,6 +35,11 @@ public interface IConstants {
     String TAG = "HeartNotes";
 
     /**
+     * Used for SharedPreferences
+     */
+    String MAIN_ACTIVITY = "HeartNotesActivity";
+
+    /**
      * Simple name of the database.
      */
     String DB_NAME = "HeartNotes.db";

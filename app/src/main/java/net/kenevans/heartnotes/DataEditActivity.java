@@ -4,6 +4,7 @@ import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.os.AsyncTask;
@@ -86,8 +87,12 @@ public class DataEditActivity extends AppCompatActivity implements IConstants {
 
         // Automatically insert weather if new
         boolean doWeather = false;
+        // See if the OpenWeather key has been set
+        SharedPreferences prefs = getSharedPreferences(MAIN_ACTIVITY,
+                MODE_PRIVATE);
+        String openWeatherKey = prefs.getString(PREF_OPENWEATHER_KEY, null);
         Intent intent = getIntent();
-        if (intent != null && intent.getExtras() != null) {
+        if (openWeatherKey != null && intent != null && intent.getExtras() != null) {
             doWeather = intent.getExtras().getBoolean(PREF_DO_WEATHER);
         }
 
