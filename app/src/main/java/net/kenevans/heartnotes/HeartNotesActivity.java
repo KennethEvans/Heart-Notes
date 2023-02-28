@@ -17,6 +17,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.TextView;
@@ -319,23 +320,30 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
     private void setOpenWeatherKey() {
         AlertDialog.Builder alert = new AlertDialog.Builder(this);
         alert.setTitle("Set OpenWeather Key");
+        LayoutInflater inflater = this.getLayoutInflater();
+        View view = inflater.inflate(R.layout.open_weather_map, null);
+        alert.setView(view);
 
         // Set an EditText view to get user input
-        final EditText input = new EditText(this);
-        // Set it with the current value
+        EditText editText = view.findViewById(R.id.open_weather_edittext);
+        CheckBox cb = view.findViewById(R.id.open_weather_checkbox);
+        // Set them with the current values
         SharedPreferences prefs = getSharedPreferences(MAIN_ACTIVITY,
                 MODE_PRIVATE);
         String keyName = prefs.getString(PREF_OPENWEATHER_KEY, null);
         if (keyName != null) {
-            input.setText(keyName);
+            editText.setText(keyName);
         }
-        alert.setView(input);
+        boolean autoWeather = prefs.getBoolean(PREF_AUTO_WEATHER, false);
+        cb.setChecked(autoWeather);
         alert.setPositiveButton("Ok", (dialog, whichButton) -> {
-            String value = input.getText().toString();
+            String value = editText.getText().toString();
+            boolean newAutoWeather = cb.isChecked();
             SharedPreferences.Editor editor =
                     getSharedPreferences(MAIN_ACTIVITY, MODE_PRIVATE)
                     .edit();
             editor.putString(PREF_OPENWEATHER_KEY, value);
+            editor.putBoolean(PREF_AUTO_WEATHER, newAutoWeather);
             editor.apply();
         });
 
@@ -352,7 +360,6 @@ public class HeartNotesActivity extends AppCompatActivity implements IConstants 
                 net.kenevans.heartnotes.DataEditActivity.class);
         // Use -1 for the COL_ID to indicate it is new
         intent.putExtra(COL_ID, -1L);
-        intent.putExtra(PREF_DO_WEATHER, true);
         startActivity(intent);
     }
 

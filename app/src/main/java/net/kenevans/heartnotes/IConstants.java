@@ -55,10 +55,10 @@ public interface IConstants {
 
     // Preferences
     String PREF_OPENWEATHER_KEY = "openWeatherKey";
+    String PREF_AUTO_WEATHER = "autoWeather";
     String PREF_FILTER = "filter";
     String PREF_SORT_ORDER = "sortOrder";
     String PREF_TREE_URI = "tree_uri";
-    String PREF_DO_WEATHER = "do_weather";
 
     // Information
     /**

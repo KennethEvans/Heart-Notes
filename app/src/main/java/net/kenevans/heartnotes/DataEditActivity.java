@@ -3,7 +3,6 @@ package net.kenevans.heartnotes;
 import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
@@ -85,18 +84,16 @@ public class DataEditActivity extends AppCompatActivity implements IConstants {
 
         mEditedText.setMovementMethod(new ScrollingMovementMethod());
 
-        // Automatically insert weather if new
-        boolean doWeather = false;
-        // See if the OpenWeather key has been set
+        // Decide whether to set weather automatically
         SharedPreferences prefs = getSharedPreferences(MAIN_ACTIVITY,
                 MODE_PRIVATE);
         String openWeatherKey = prefs.getString(PREF_OPENWEATHER_KEY, null);
-        Intent intent = getIntent();
-        if (openWeatherKey != null && intent != null && intent.getExtras() != null) {
-            doWeather = intent.getExtras().getBoolean(PREF_DO_WEATHER);
+        boolean autoWeather = prefs.getBoolean(PREF_AUTO_WEATHER, false);
+        // Don't insert weather automatically if there is no key
+        if (openWeatherKey == null || openWeatherKey.trim().isEmpty()) {
+            autoWeather = false;
         }
-
-        if (doWeather) {
+        if (autoWeather) {
             insertWeather();
         }
 
